@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Asistencia CRECE</title>
+    <title>Sistema de Asistencia CRECE - Debug</title>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -155,6 +155,12 @@
             background: var(--primary-dark);
             transform: translateY(-2px);
             box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .btn-secondary {
@@ -639,14 +645,114 @@
             font-weight: 600;
             text-decoration: underline;
         }
+
+        /* Debug Console */
+        .debug-console {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--dark);
+            color: #00FF00;
+            padding: 1rem;
+            border-radius: var(--radius);
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+        }
+
+        .debug-console.hidden {
+            display: none;
+        }
+
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #333;
+        }
+
+        .debug-close {
+            background: #FF4444;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .debug-log {
+            margin: 0.25rem 0;
+        }
+
+        .debug-log.error {
+            color: #FF4444;
+        }
+
+        .debug-log.success {
+            color: #00FF00;
+        }
+
+        .debug-log.warning {
+            color: #FFAA00;
+        }
     </style>
 </head>
 <body>
     <div id="app"></div>
+    
+    <!-- Debug Console -->
+    <div id="debugConsole" class="debug-console hidden">
+        <div class="debug-header">
+            <strong>🐛 Debug Console</strong>
+            <button class="debug-close" onclick="toggleDebug()">✕</button>
+        </div>
+        <div id="debugLogs"></div>
+    </div>
 
     <script>
+        // ==================== DEBUG SYSTEM ====================
+        let debugEnabled = true;
+        let debugLogs = [];
+
+        function debugLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const log = { timestamp, message, type };
+            debugLogs.push(log);
+            
+            console.log(`[${timestamp}] ${message}`);
+            
+            const debugLogsDiv = document.getElementById('debugLogs');
+            if (debugLogsDiv) {
+                const logDiv = document.createElement('div');
+                logDiv.className = `debug-log ${type}`;
+                logDiv.textContent = `[${timestamp}] ${message}`;
+                debugLogsDiv.appendChild(logDiv);
+                debugLogsDiv.scrollTop = debugLogsDiv.scrollHeight;
+            }
+        }
+
+        function toggleDebug() {
+            const debugConsole = document.getElementById('debugConsole');
+            debugConsole.classList.toggle('hidden');
+        }
+
+        // Mostrar debug console con Ctrl+D
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                toggleDebug();
+            }
+        });
+
         // ==================== CONFIGURACIÓN FIREBASE ====================
-        const firebaseConfig = {
+             const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -669,13 +775,18 @@
 
         try {
             if (firebaseConfig.apiKey !== "TU_API_KEY_AQUI") {
+                debugLog('Inicializando Firebase...', 'info');
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
                 }
                 db = firebase.firestore();
                 firebaseConfigured = true;
+                debugLog('✅ Firebase inicializado correctamente', 'success');
+            } else {
+                debugLog('⚠️ Firebase no configurado', 'warning');
             }
         } catch (error) {
+            debugLog('❌ Error inicializando Firebase: ' + error.message, 'error');
             console.error("Error inicializando Firebase:", error);
         }
 
@@ -692,51 +803,77 @@
 
         // ==================== FUNCIONES DE BASE DE DATOS ====================
         async function cargarDatos() {
-            if (!firebaseConfigured) return;
+            if (!firebaseConfigured) {
+                debugLog('No se puede cargar datos: Firebase no configurado', 'warning');
+                return;
+            }
 
             try {
+                debugLog('Cargando datos desde Firebase...', 'info');
+                
                 // Cargar grupos
                 const gruposSnapshot = await db.collection('grupos').get();
                 grupos = gruposSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                debugLog(`✅ ${grupos.length} grupos cargados`, 'success');
 
                 // Cargar docentes
                 const docentesSnapshot = await db.collection('docentes').get();
                 docentes = docentesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                debugLog(`✅ ${docentes.length} docentes cargados`, 'success');
 
                 // Cargar participantes
                 const participantesSnapshot = await db.collection('participantes').get();
                 participantes = participantesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                debugLog(`✅ ${participantes.length} participantes cargados`, 'success');
 
                 // Cargar asistencias
                 const asistenciasSnapshot = await db.collection('asistencias').get();
                 asistencias = asistenciasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                debugLog(`✅ ${asistencias.length} asistencias cargadas`, 'success');
 
                 render();
             } catch (error) {
+                debugLog('❌ Error cargando datos: ' + error.message, 'error');
                 console.error('Error cargando datos:', error);
                 mostrarAlerta('Error cargando datos de Firebase', 'danger');
             }
         }
 
         async function crearGrupo(distrito, nombreGrupo) {
+            if (!firebaseConfigured) {
+                debugLog('❌ No se puede crear grupo: Firebase no configurado', 'error');
+                mostrarAlerta('Firebase no está configurado', 'danger');
+                return;
+            }
+
             try {
-                const docRef = await db.collection('grupos').add({
+                debugLog(`Creando grupo: "${nombreGrupo}" en distrito ${distrito}`, 'info');
+                
+                const grupoData = {
                     distrito: distrito,
                     nombre: nombreGrupo,
                     fechaCreacion: new Date().toISOString()
-                });
+                };
+                
+                debugLog('Datos del grupo: ' + JSON.stringify(grupoData), 'info');
+                
+                const docRef = await db.collection('grupos').add(grupoData);
+                
+                debugLog('✅ Grupo creado con ID: ' + docRef.id, 'success');
                 
                 grupos.push({
                     id: docRef.id,
-                    distrito: distrito,
-                    nombre: nombreGrupo
+                    ...grupoData
                 });
                 
-                mostrarAlerta('Grupo creado exitosamente', 'success');
+                debugLog(`Total de grupos ahora: ${grupos.length}`, 'info');
+                
+                mostrarAlerta('✅ Grupo creado exitosamente', 'success');
                 render();
             } catch (error) {
-                console.error('Error creando grupo:', error);
-                mostrarAlerta('Error al crear grupo', 'danger');
+                debugLog('❌ Error creando grupo: ' + error.message, 'error');
+                console.error('Error completo:', error);
+                mostrarAlerta('❌ Error al crear grupo: ' + error.message, 'danger');
             }
         }
 
@@ -744,12 +881,15 @@
             if (!confirm('¿Estás seguro de eliminar este grupo?')) return;
 
             try {
+                debugLog(`Eliminando grupo: ${grupoId}`, 'info');
                 await db.collection('grupos').doc(grupoId).delete();
                 grupos = grupos.filter(g => g.id !== grupoId);
                 
+                debugLog('✅ Grupo eliminado correctamente', 'success');
                 mostrarAlerta('Grupo eliminado correctamente', 'success');
                 render();
             } catch (error) {
+                debugLog('❌ Error eliminando grupo: ' + error.message, 'error');
                 console.error('Error eliminando grupo:', error);
                 mostrarAlerta('Error al eliminar grupo', 'danger');
             }
@@ -757,6 +897,8 @@
 
         async function registrarDocente(nombre, apellido, usuario, password, distrito, grupoId, asignatura) {
             try {
+                debugLog(`Registrando docente: ${nombre} ${apellido}`, 'info');
+                
                 const docRef = await db.collection('docentes').add({
                     nombre: nombre,
                     apellido: apellido,
@@ -773,9 +915,11 @@
                     nombre, apellido, usuario, password, distrito, grupoId, asignatura
                 });
                 
+                debugLog('✅ Docente registrado exitosamente', 'success');
                 mostrarAlerta('Docente registrado exitosamente', 'success');
                 render();
             } catch (error) {
+                debugLog('❌ Error registrando docente: ' + error.message, 'error');
                 console.error('Error registrando docente:', error);
                 mostrarAlerta('Error al registrar docente', 'danger');
             }
@@ -783,6 +927,8 @@
 
         async function cargarParticipantes(distrito, grupoId, asignatura, datos) {
             try {
+                debugLog(`Cargando ${datos.length} participantes...`, 'info');
+                
                 // Limpiar participantes anteriores del mismo grupo
                 const participantesAntiguos = participantes.filter(p => 
                     p.distrito === distrito && p.grupoId === grupoId && p.asignatura === asignatura
@@ -825,9 +971,11 @@
                     });
                 });
 
+                debugLog('✅ Participantes cargados exitosamente', 'success');
                 mostrarAlerta(`${datos.length} participantes cargados exitosamente`, 'success');
                 render();
             } catch (error) {
+                debugLog('❌ Error cargando participantes: ' + error.message, 'error');
                 console.error('Error cargando participantes:', error);
                 mostrarAlerta('Error al cargar participantes', 'danger');
             }
@@ -862,13 +1010,18 @@
                         ausente
                     });
                 }
+                
+                debugLog(`Asistencia guardada: ${fecha} - ${participanteId}`, 'success');
             } catch (error) {
+                debugLog('❌ Error guardando asistencia: ' + error.message, 'error');
                 console.error('Error guardando asistencia:', error);
             }
         }
 
         // ==================== FUNCIONES DE UI ====================
         function mostrarAlerta(mensaje, tipo = 'info') {
+            debugLog(`Alerta [${tipo}]: ${mensaje}`, tipo);
+            
             const alertDiv = document.createElement('div');
             alertDiv.className = `alert alert-${tipo}`;
             alertDiv.textContent = mensaje;
@@ -879,14 +1032,17 @@
             setTimeout(() => {
                 alertDiv.style.animation = 'slideUp 0.3s ease reverse';
                 setTimeout(() => alertDiv.remove(), 300);
-            }, 3000);
+            }, 4000);
         }
 
         function login(usuario, password, tipo) {
+            debugLog(`Intento de login: ${usuario} (${tipo})`, 'info');
+            
             if (tipo === 'admin') {
                 if (usuario === 'admin' && password === 'E.r40%6205$C') {
                     currentUser = { tipo: 'admin', usuario: 'admin' };
                     currentScreen = 'dashboard';
+                    debugLog('✅ Login exitoso como administrador', 'success');
                     render();
                     return true;
                 }
@@ -895,16 +1051,19 @@
                 if (docente) {
                     currentUser = { tipo: 'docente', ...docente };
                     currentScreen = 'dashboard';
+                    debugLog('✅ Login exitoso como docente', 'success');
                     render();
                     return true;
                 }
             }
             
+            debugLog('❌ Login fallido: credenciales incorrectas', 'error');
             mostrarAlerta('Usuario o contraseña incorrectos', 'danger');
             return false;
         }
 
         function logout() {
+            debugLog('Cerrando sesión...', 'info');
             currentUser = null;
             currentScreen = 'login';
             currentTab = 'grupos';
@@ -912,6 +1071,7 @@
         }
 
         function cambiarTab(tab) {
+            debugLog(`Cambiando a pestaña: ${tab}`, 'info');
             currentTab = tab;
             render();
         }
@@ -942,6 +1102,7 @@
 
         // ==================== PROCESAMIENTO DE EXCEL ====================
         function procesarExcel(file, distrito, grupoId, asignatura) {
+            debugLog(`Procesando archivo Excel: ${file.name}`, 'info');
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -951,6 +1112,8 @@
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
+                    debugLog(`Excel procesado: ${jsonData.length} filas encontradas`, 'info');
+
                     const participantesData = jsonData.map(row => ({
                         nombre: row.Nombre || row.nombre || '',
                         apellido: row.Apellido || row.apellido || '',
@@ -958,12 +1121,14 @@
                     }));
 
                     if (participantesData.length === 0) {
+                        debugLog('⚠️ Excel vacío o formato incorrecto', 'warning');
                         mostrarAlerta('El archivo Excel está vacío o no tiene el formato correcto', 'warning');
                         return;
                     }
 
                     cargarParticipantes(distrito, grupoId, asignatura, participantesData);
                 } catch (error) {
+                    debugLog('❌ Error procesando Excel: ' + error.message, 'error');
                     console.error('Error procesando Excel:', error);
                     mostrarAlerta('Error al procesar el archivo Excel', 'danger');
                 }
@@ -974,6 +1139,7 @@
 
         // ==================== RENDERIZADO ====================
         function render() {
+            debugLog('Renderizando interfaz...', 'info');
             const app = document.getElementById('app');
             
             if (!firebaseConfigured) {
@@ -1006,17 +1172,20 @@
                                 <li>Ve a <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
                                 <li>Crea un proyecto nuevo</li>
                                 <li>Crea una base de datos Firestore (modo prueba)</li>
+                                <li>Ve a Configuración → Reglas → Pega esto:<br>
+                                <code style="margin-top:0.5rem;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</code>
+                                </li>
                                 <li>Ve a Configuración → Tus apps → Agregar app web</li>
-                                <li>Copia la configuración y pégala en el código HTML (líneas 560-566)</li>
+                                <li>Copia la configuración y pégala en el código HTML (líneas 680-686)</li>
                             </ol>
-                            <code>const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "...",
-  projectId: "...",
-  storageBucket: "...",
-  messagingSenderId: "...",
-  appId: "..."
-};</code>
+                            <p style="margin-top: 1rem;"><strong>Presiona Ctrl+D para ver el debug console</strong></p>
                         </div>
                     </div>
                 </div>
@@ -1060,6 +1229,10 @@
                             <strong>Credenciales de prueba:</strong><br>
                             Admin: usuario=<code>admin</code> / contraseña=<code>E.r40%6205$C</code>
                         </div>
+                        
+                        <p class="text-center text-gray mt-2" style="font-size: 0.85rem;">
+                            Presiona <strong>Ctrl+D</strong> para ver el debug console
+                        </p>
                     </div>
                 </div>
             `;
@@ -1121,6 +1294,10 @@
                     <h3 class="card-title">Crear Grupos por Distrito</h3>
                 </div>
                 
+                <div class="alert alert-info">
+                    Total de grupos creados: <strong>${grupos.length}</strong>
+                </div>
+                
                 <form id="crearGrupoForm" class="mb-2">
                     <div class="form-group">
                         <label>Distrito</label>
@@ -1135,7 +1312,9 @@
                         <input type="text" id="nombreGrupo" placeholder="Ej: Grupo A, Primer Ciclo, Matutino..." required>
                     </div>
                     
-                    <button type="submit" class="btn btn-success">➕ Crear Grupo</button>
+                    <button type="submit" class="btn btn-success" id="btnCrearGrupo">
+                        ➕ Crear Grupo
+                    </button>
                 </form>
                 
                 <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--secondary);">Grupos Creados</h4>
@@ -1146,7 +1325,7 @@
                 
                 if (gruposDistrito.length > 0) {
                     html += `
-                        <h5 style="margin-top: 1.5rem; color: var(--gray);">Distrito ${distrito}</h5>
+                        <h5 style="margin-top: 1.5rem; color: var(--gray);">Distrito ${distrito} (${gruposDistrito.length} grupos)</h5>
                         <div class="groups-container">
                             ${gruposDistrito.map(grupo => `
                                 <div class="group-item">
@@ -1420,14 +1599,43 @@
             // Crear Grupo
             const crearGrupoForm = document.getElementById('crearGrupoForm');
             if (crearGrupoForm) {
-                crearGrupoForm.addEventListener('submit', function(e) {
+                crearGrupoForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
+                    debugLog('📝 Formulario de crear grupo enviado', 'info');
+                    
+                    const btnCrear = document.getElementById('btnCrearGrupo');
+                    btnCrear.disabled = true;
+                    btnCrear.textContent = '⏳ Creando...';
+                    
                     const distrito = document.getElementById('distritoGrupo').value;
                     const nombreGrupo = document.getElementById('nombreGrupo').value;
                     
-                    if (distrito && nombreGrupo) {
-                        crearGrupo(distrito, nombreGrupo);
+                    debugLog(`Distrito: "${distrito}", Nombre: "${nombreGrupo}"`, 'info');
+                    
+                    if (!distrito) {
+                        debugLog('⚠️ No se seleccionó distrito', 'warning');
+                        mostrarAlerta('⚠️ Por favor selecciona un distrito', 'warning');
+                        btnCrear.disabled = false;
+                        btnCrear.textContent = '➕ Crear Grupo';
+                        return;
+                    }
+                    
+                    if (!nombreGrupo || nombreGrupo.trim() === '') {
+                        debugLog('⚠️ Nombre de grupo vacío', 'warning');
+                        mostrarAlerta('⚠️ Por favor ingresa un nombre para el grupo', 'warning');
+                        btnCrear.disabled = false;
+                        btnCrear.textContent = '➕ Crear Grupo';
+                        return;
+                    }
+                    
+                    try {
+                        await crearGrupo(distrito, nombreGrupo.trim());
                         this.reset();
+                    } catch (error) {
+                        debugLog('❌ Error en el proceso: ' + error.message, 'error');
+                    } finally {
+                        btnCrear.disabled = false;
+                        btnCrear.textContent = '➕ Crear Grupo';
                     }
                 });
             }
@@ -1513,6 +1721,8 @@
             const grupoSelect = document.getElementById('grupoExcel');
             const gruposDistrito = obtenerGruposPorDistrito(distrito);
 
+            debugLog(`Actualizando grupos para distrito ${distrito}: ${gruposDistrito.length} grupos`, 'info');
+
             if (gruposDistrito.length === 0) {
                 grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
             } else {
@@ -1525,6 +1735,8 @@
             const distrito = document.getElementById('distritoDocente').value;
             const grupoSelect = document.getElementById('grupoDocente');
             const gruposDistrito = obtenerGruposPorDistrito(distrito);
+
+            debugLog(`Actualizando grupos para distrito ${distrito}: ${gruposDistrito.length} grupos`, 'info');
 
             if (gruposDistrito.length === 0) {
                 grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
@@ -1569,11 +1781,21 @@
 
         // ==================== INICIALIZACIÓN ====================
         window.onload = function() {
+            debugLog('🚀 Aplicación iniciada', 'success');
+            debugLog('Versión: Debug Mode', 'info');
+            
             if (firebaseConfigured) {
+                debugLog('Cargando datos iniciales...', 'info');
                 cargarDatos();
             } else {
+                debugLog('Mostrando advertencia de Firebase', 'warning');
                 render();
             }
+            
+            // Mostrar debug console automáticamente
+            setTimeout(() => {
+                document.getElementById('debugConsole').classList.remove('hidden');
+            }, 500);
         };
     </script>
 </body>
