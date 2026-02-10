@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Asistencia CRECE</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- SheetJS para leer Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #FF6B35;
+            --primary-dark: #E55A2B;
+            --secondary: #004E89;
+            --accent: #FFA07A;
+            --success: #06D6A0;
+            --warning: #FFD23F;
+            --danger: #EF476F;
+            --dark: #1A1A2E;
+            --light: #F7F7F9;
+            --gray: #8B8C9E;
+            --white: #FFFFFF;
+            --shadow: rgba(0, 78, 137, 0.1);
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Login Screen */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #E8E8F0;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: var(--radius);
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 107, 53, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: #003D6E;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: var(--white);
+        }
+
+        .btn-success:hover {
+            background: #05B888;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-danger:hover {
+            background: #D63757;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        /* Dashboard */
+        .dashboard {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .dashboard-header {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h2 {
+            font-size: 1.75rem;
+            color: var(--secondary);
+            font-weight: 700;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-badge {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px var(--shadow);
+            animation: slideUp 0.5s ease;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #F0F0F5;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #E8E8F0;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--gray);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        thead {
+            background: linear-gradient(135deg, var(--secondary), #003D6E);
+            color: var(--white);
+        }
+
+        thead th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #F0F0F5;
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #F7F9FC;
+        }
+
+        tbody td {
+            padding: 1rem;
+            color: var(--dark);
+        }
+
+        /* Groups Display */
+        .groups-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .group-item {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        .group-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .group-info p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .delete-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: var(--white);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        /* File Upload */
+        .file-upload {
+            border: 3px dashed #D0D0E0;
+            border-radius: var(--radius);
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #FAFBFC;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: #FFF5F2;
+        }
+
+        .file-upload.dragover {
+            border-color: var(--primary);
+            background: #FFF5F2;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        /* Attendance Grid */
+        .attendance-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .attendance-row {
+            background: #F7F9FC;
+            padding: 1rem;
+            border-radius: var(--radius);
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .attendance-row:hover {
+            background: #EDF2F7;
+        }
+
+        .participant-info {
+            font-weight: 500;
+        }
+
+        .participant-center {
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        /* Checkbox Toggle */
+        .checkbox-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .checkbox-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-toggle label {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--success), #05B888);
+            color: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(6, 214, 160, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-info {
+            background: #E3F2FD;
+            color: #0D47A1;
+            border-left: 4px solid #2196F3;
+        }
+
+        .alert-success {
+            background: #E8F5E9;
+            color: #1B5E20;
+            border-left: 4px solid #4CAF50;
+        }
+
+        .alert-warning {
+            background: #FFF3E0;
+            color: #E65100;
+            border-left: 4px solid #FF9800;
+        }
+
+        .alert-danger {
+            background: #FFEBEE;
+            color: #B71C1C;
+            border-left: 4px solid #F44336;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+
+        .spinner {
+            border: 4px solid #F3F3F3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-gray { color: var(--gray); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .attendance-row {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Firebase Warning */
+        .firebase-warning {
+            background: linear-gradient(135deg, #FFD54F, #FFA726);
+            color: var(--dark);
+            padding: 2rem;
+            border-radius: 20px;
+            margin-top: 2rem;
+            box-shadow: 0 8px 24px rgba(255, 213, 79, 0.3);
+        }
+
+        .firebase-warning h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .firebase-warning code {
+            display: block;
+            background: var(--white);
+            padding: 1rem;
+            border-radius: var(--radius);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+            color: var(--secondary);
+        }
+
+        .firebase-warning ol {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .firebase-warning li {
+            margin-bottom: 0.5rem;
+        }
+
+        .firebase-warning a {
+            color: var(--secondary);
+            font-weight: 600;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // ==================== CONFIGURACIÓN FIREBASE ====================
+        const firebaseConfig = {
+
+  apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
+
+  authDomain: "asistencia-crece.firebaseapp.com",
+
+  projectId: "asistencia-crece",
+
+  storageBucket: "asistencia-crece.firebasestorage.app",
+
+  messagingSenderId: "598785147177",
+
+  appId: "1:598785147177:web:d9a0a18c3718511a07f738"
+
+};
+
+
+        // Inicializar Firebase
+        let db;
+        let firebaseConfigured = false;
+
+        try {
+            if (firebaseConfig.apiKey !== "TU_API_KEY_AQUI") {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                firebaseConfigured = true;
+            }
+        } catch (error) {
+            console.error("Error inicializando Firebase:", error);
+        }
+
+        // ==================== ESTADO DE LA APLICACIÓN ====================
+        let currentUser = null;
+        let currentScreen = 'login';
+        let currentTab = 'grupos';
+        let distritos = ['01-01', '01-02', '01-03', '01-04', '01-05'];
+        let asignaturas = ['Lengua Española', 'Matemática', 'Ciencias Sociales', 'Ciencias Naturales'];
+        let grupos = [];
+        let docentes = [];
+        let participantes = [];
+        let asistencias = [];
+
+        // ==================== FUNCIONES DE BASE DE DATOS ====================
+        async function cargarDatos() {
+            if (!firebaseConfigured) return;
+
+            try {
+                // Cargar grupos
+                const gruposSnapshot = await db.collection('grupos').get();
+                grupos = gruposSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Cargar docentes
+                const docentesSnapshot = await db.collection('docentes').get();
+                docentes = docentesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Cargar participantes
+                const participantesSnapshot = await db.collection('participantes').get();
+                participantes = participantesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Cargar asistencias
+                const asistenciasSnapshot = await db.collection('asistencias').get();
+                asistencias = asistenciasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                render();
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                mostrarAlerta('Error cargando datos de Firebase', 'danger');
+            }
+        }
+
+        async function crearGrupo(distrito, nombreGrupo) {
+            try {
+                const docRef = await db.collection('grupos').add({
+                    distrito: distrito,
+                    nombre: nombreGrupo,
+                    fechaCreacion: new Date().toISOString()
+                });
+                
+                grupos.push({
+                    id: docRef.id,
+                    distrito: distrito,
+                    nombre: nombreGrupo
+                });
+                
+                mostrarAlerta('Grupo creado exitosamente', 'success');
+                render();
+            } catch (error) {
+                console.error('Error creando grupo:', error);
+                mostrarAlerta('Error al crear grupo', 'danger');
+            }
+        }
+
+        async function eliminarGrupo(grupoId) {
+            if (!confirm('¿Estás seguro de eliminar este grupo?')) return;
+
+            try {
+                await db.collection('grupos').doc(grupoId).delete();
+                grupos = grupos.filter(g => g.id !== grupoId);
+                
+                mostrarAlerta('Grupo eliminado correctamente', 'success');
+                render();
+            } catch (error) {
+                console.error('Error eliminando grupo:', error);
+                mostrarAlerta('Error al eliminar grupo', 'danger');
+            }
+        }
+
+        async function registrarDocente(nombre, apellido, usuario, password, distrito, grupoId, asignatura) {
+            try {
+                const docRef = await db.collection('docentes').add({
+                    nombre: nombre,
+                    apellido: apellido,
+                    usuario: usuario,
+                    password: password,
+                    distrito: distrito,
+                    grupoId: grupoId,
+                    asignatura: asignatura,
+                    fechaRegistro: new Date().toISOString()
+                });
+                
+                docentes.push({
+                    id: docRef.id,
+                    nombre, apellido, usuario, password, distrito, grupoId, asignatura
+                });
+                
+                mostrarAlerta('Docente registrado exitosamente', 'success');
+                render();
+            } catch (error) {
+                console.error('Error registrando docente:', error);
+                mostrarAlerta('Error al registrar docente', 'danger');
+            }
+        }
+
+        async function cargarParticipantes(distrito, grupoId, asignatura, datos) {
+            try {
+                // Limpiar participantes anteriores del mismo grupo
+                const participantesAntiguos = participantes.filter(p => 
+                    p.distrito === distrito && p.grupoId === grupoId && p.asignatura === asignatura
+                );
+
+                const batch = db.batch();
+                participantesAntiguos.forEach(p => {
+                    const docRef = db.collection('participantes').doc(p.id);
+                    batch.delete(docRef);
+                });
+                await batch.commit();
+
+                // Agregar nuevos participantes
+                const promises = datos.map(item => 
+                    db.collection('participantes').add({
+                        nombre: item.nombre,
+                        apellido: item.apellido,
+                        centro: item.centro,
+                        distrito: distrito,
+                        grupoId: grupoId,
+                        asignatura: asignatura,
+                        fechaCarga: new Date().toISOString()
+                    })
+                );
+
+                const results = await Promise.all(promises);
+                
+                // Actualizar estado local
+                participantes = participantes.filter(p => 
+                    !(p.distrito === distrito && p.grupoId === grupoId && p.asignatura === asignatura)
+                );
+                
+                results.forEach((docRef, index) => {
+                    participantes.push({
+                        id: docRef.id,
+                        ...datos[index],
+                        distrito,
+                        grupoId,
+                        asignatura
+                    });
+                });
+
+                mostrarAlerta(`${datos.length} participantes cargados exitosamente`, 'success');
+                render();
+            } catch (error) {
+                console.error('Error cargando participantes:', error);
+                mostrarAlerta('Error al cargar participantes', 'danger');
+            }
+        }
+
+        async function guardarAsistencia(fecha, participanteId, presente, ausente) {
+            try {
+                const asistenciaId = `${fecha}_${participanteId}`;
+                const asistenciaExistente = asistencias.find(a => a.id === asistenciaId);
+
+                if (asistenciaExistente) {
+                    await db.collection('asistencias').doc(asistenciaId).update({
+                        presente: presente,
+                        ausente: ausente
+                    });
+                    
+                    const index = asistencias.findIndex(a => a.id === asistenciaId);
+                    asistencias[index] = { ...asistencias[index], presente, ausente };
+                } else {
+                    await db.collection('asistencias').doc(asistenciaId).set({
+                        fecha: fecha,
+                        participanteId: participanteId,
+                        presente: presente,
+                        ausente: ausente
+                    });
+                    
+                    asistencias.push({
+                        id: asistenciaId,
+                        fecha,
+                        participanteId,
+                        presente,
+                        ausente
+                    });
+                }
+            } catch (error) {
+                console.error('Error guardando asistencia:', error);
+            }
+        }
+
+        // ==================== FUNCIONES DE UI ====================
+        function mostrarAlerta(mensaje, tipo = 'info') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${tipo}`;
+            alertDiv.textContent = mensaje;
+            
+            const container = document.querySelector('.container') || document.body;
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                alertDiv.style.animation = 'slideUp 0.3s ease reverse';
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 3000);
+        }
+
+        function login(usuario, password, tipo) {
+            if (tipo === 'admin') {
+                if (usuario === 'admin' && password === 'E.r40%6205$C') {
+                    currentUser = { tipo: 'admin', usuario: 'admin' };
+                    currentScreen = 'dashboard';
+                    render();
+                    return true;
+                }
+            } else {
+                const docente = docentes.find(d => d.usuario === usuario && d.password === password);
+                if (docente) {
+                    currentUser = { tipo: 'docente', ...docente };
+                    currentScreen = 'dashboard';
+                    render();
+                    return true;
+                }
+            }
+            
+            mostrarAlerta('Usuario o contraseña incorrectos', 'danger');
+            return false;
+        }
+
+        function logout() {
+            currentUser = null;
+            currentScreen = 'login';
+            currentTab = 'grupos';
+            render();
+        }
+
+        function cambiarTab(tab) {
+            currentTab = tab;
+            render();
+        }
+
+        function obtenerGruposPorDistrito(distrito) {
+            return grupos.filter(g => g.distrito === distrito);
+        }
+
+        function obtenerNombreGrupo(grupoId) {
+            const grupo = grupos.find(g => g.id === grupoId);
+            return grupo ? grupo.nombre : 'N/A';
+        }
+
+        function obtenerParticipantesDocente() {
+            if (!currentUser || currentUser.tipo !== 'docente') return [];
+            
+            return participantes.filter(p => 
+                p.distrito === currentUser.distrito &&
+                p.grupoId === currentUser.grupoId &&
+                p.asignatura === currentUser.asignatura
+            );
+        }
+
+        function obtenerAsistencia(fecha, participanteId) {
+            const asistenciaId = `${fecha}_${participanteId}`;
+            return asistencias.find(a => a.id === asistenciaId) || { presente: false, ausente: false };
+        }
+
+        // ==================== PROCESAMIENTO DE EXCEL ====================
+        function procesarExcel(file, distrito, grupoId, asignatura) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    const participantesData = jsonData.map(row => ({
+                        nombre: row.Nombre || row.nombre || '',
+                        apellido: row.Apellido || row.apellido || '',
+                        centro: row['Centro educativo donde trabaja'] || row.centro || row.Centro || ''
+                    }));
+
+                    if (participantesData.length === 0) {
+                        mostrarAlerta('El archivo Excel está vacío o no tiene el formato correcto', 'warning');
+                        return;
+                    }
+
+                    cargarParticipantes(distrito, grupoId, asignatura, participantesData);
+                } catch (error) {
+                    console.error('Error procesando Excel:', error);
+                    mostrarAlerta('Error al procesar el archivo Excel', 'danger');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ==================== RENDERIZADO ====================
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!firebaseConfigured) {
+                app.innerHTML = renderFirebaseWarning();
+                return;
+            }
+
+            if (currentScreen === 'login') {
+                app.innerHTML = renderLogin();
+                attachLoginHandlers();
+            } else if (currentScreen === 'dashboard') {
+                if (currentUser.tipo === 'admin') {
+                    app.innerHTML = renderAdminDashboard();
+                    attachAdminHandlers();
+                } else {
+                    app.innerHTML = renderDocenteDashboard();
+                    attachDocenteHandlers();
+                }
+            }
+        }
+
+        function renderFirebaseWarning() {
+            return `
+                <div class="login-container">
+                    <div class="login-card">
+                        <div class="firebase-warning">
+                            <h3>⚠️ Firebase no configurado</h3>
+                            <p>Para que el sistema funcione, necesitas configurar Firebase:</p>
+                            <ol>
+                                <li>Ve a <a href="https://console.firebase.google.com" target="_blank">Firebase Console</a></li>
+                                <li>Crea un proyecto nuevo</li>
+                                <li>Crea una base de datos Firestore (modo prueba)</li>
+                                <li>Ve a Configuración → Tus apps → Agregar app web</li>
+                                <li>Copia la configuración y pégala en el código HTML (líneas 560-566)</li>
+                            </ol>
+                            <code>const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "...",
+  projectId: "...",
+  storageBucket: "...",
+  messagingSenderId: "...",
+  appId: "..."
+};</code>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLogin() {
+            return `
+                <div class="login-container">
+                    <div class="login-card">
+                        <div class="login-header">
+                            <h1>🎓 Sistema CRECE</h1>
+                            <p>Control de Asistencia</p>
+                        </div>
+                        
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label>Tipo de Usuario</label>
+                                <select id="tipoUsuario" required>
+                                    <option value="admin">Administrador</option>
+                                    <option value="docente">Docente</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Usuario</label>
+                                <input type="text" id="usuario" placeholder="Ingresa tu usuario" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Contraseña</label>
+                                <input type="password" id="password" placeholder="Ingresa tu contraseña" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                Iniciar Sesión
+                            </button>
+                        </form>
+                        
+                        <div class="alert alert-info mt-2">
+                            <strong>Credenciales de prueba:</strong><br>
+                            Admin: usuario=<code>admin</code> / contraseña=<code>E.r40%6205$C</code>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminDashboard() {
+            return `
+                <div class="container dashboard">
+                    <div class="dashboard-header">
+                        <h2>Panel de Administración</h2>
+                        <div class="user-info">
+                            <span class="user-badge">👨‍💼 Administrador</span>
+                            <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="tabs">
+                            <button class="tab ${currentTab === 'grupos' ? 'active' : ''}" onclick="cambiarTab('grupos')">
+                                📁 Gestión de Grupos
+                            </button>
+                            <button class="tab ${currentTab === 'excel' ? 'active' : ''}" onclick="cambiarTab('excel')">
+                                📊 Cargar Participantes
+                            </button>
+                            <button class="tab ${currentTab === 'docentes' ? 'active' : ''}" onclick="cambiarTab('docentes')">
+                                👨‍🏫 Registro de Docentes
+                            </button>
+                            <button class="tab ${currentTab === 'vista' ? 'active' : ''}" onclick="cambiarTab('vista')">
+                                📋 Vista General
+                            </button>
+                        </div>
+                        
+                        <div id="tabContent">
+                            ${renderTabContent()}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTabContent() {
+            switch (currentTab) {
+                case 'grupos':
+                    return renderGruposTab();
+                case 'excel':
+                    return renderExcelTab();
+                case 'docentes':
+                    return renderDocentesTab();
+                case 'vista':
+                    return renderVistaTab();
+                default:
+                    return '';
+            }
+        }
+
+        function renderGruposTab() {
+            let html = `
+                <div class="card-header">
+                    <h3 class="card-title">Crear Grupos por Distrito</h3>
+                </div>
+                
+                <form id="crearGrupoForm" class="mb-2">
+                    <div class="form-group">
+                        <label>Distrito</label>
+                        <select id="distritoGrupo" required>
+                            <option value="">Selecciona un distrito</option>
+                            ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Nombre del Grupo</label>
+                        <input type="text" id="nombreGrupo" placeholder="Ej: Grupo A, Primer Ciclo, Matutino..." required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">➕ Crear Grupo</button>
+                </form>
+                
+                <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--secondary);">Grupos Creados</h4>
+            `;
+
+            distritos.forEach(distrito => {
+                const gruposDistrito = obtenerGruposPorDistrito(distrito);
+                
+                if (gruposDistrito.length > 0) {
+                    html += `
+                        <h5 style="margin-top: 1.5rem; color: var(--gray);">Distrito ${distrito}</h5>
+                        <div class="groups-container">
+                            ${gruposDistrito.map(grupo => `
+                                <div class="group-item">
+                                    <div class="group-info">
+                                        <h4>${grupo.nombre}</h4>
+                                        <p>Distrito ${grupo.distrito}</p>
+                                    </div>
+                                    <button class="delete-btn" onclick="eliminarGrupo('${grupo.id}')">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            });
+
+            if (grupos.length === 0) {
+                html += `<div class="alert alert-info">No hay grupos creados. Crea el primer grupo usando el formulario arriba.</div>`;
+            }
+
+            return html;
+        }
+
+        function renderExcelTab() {
+            return `
+                <div class="card-header">
+                    <h3 class="card-title">Cargar Participantes desde Excel</h3>
+                </div>
+                
+                <div class="alert alert-info">
+                    El archivo Excel debe tener las columnas: <strong>Nombre</strong>, <strong>Apellido</strong>, <strong>Centro educativo donde trabaja</strong>
+                </div>
+                
+                <form id="cargarExcelForm">
+                    <div class="form-group">
+                        <label>Distrito</label>
+                        <select id="distritoExcel" required onchange="actualizarGruposExcel()">
+                            <option value="">Selecciona un distrito</option>
+                            ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Grupo</label>
+                        <select id="grupoExcel" required>
+                            <option value="">Primero selecciona un distrito</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Asignatura</label>
+                        <select id="asignaturaExcel" required>
+                            <option value="">Selecciona una asignatura</option>
+                            ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Archivo Excel</label>
+                        <div class="file-upload" id="fileUpload">
+                            <input type="file" id="excelFile" accept=".xlsx,.xls" required>
+                            <div class="upload-icon">📄</div>
+                            <p>Click para seleccionar archivo o arrastra aquí</p>
+                            <small class="text-gray">Formatos: .xlsx, .xls</small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">📤 Cargar Participantes</button>
+                </form>
+            `;
+        }
+
+        function renderDocentesTab() {
+            return `
+                <div class="card-header">
+                    <h3 class="card-title">Registrar Nuevo Docente</h3>
+                </div>
+                
+                <form id="registrarDocenteForm">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="nombreDocente" placeholder="Nombre del docente" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Apellido</label>
+                        <input type="text" id="apellidoDocente" placeholder="Apellido del docente" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="usuarioDocente" placeholder="Nombre de usuario para login" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="passwordDocente" placeholder="Contraseña del docente" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Distrito</label>
+                        <select id="distritoDocente" required onchange="actualizarGruposDocente()">
+                            <option value="">Selecciona un distrito</option>
+                            ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Grupo</label>
+                        <select id="grupoDocente" required>
+                            <option value="">Primero selecciona un distrito</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Asignatura</label>
+                        <select id="asignaturaDocente" required>
+                            <option value="">Selecciona una asignatura</option>
+                            ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">✅ Registrar Docente</button>
+                </form>
+            `;
+        }
+
+        function renderVistaTab() {
+            return `
+                <div class="card-header">
+                    <h3 class="card-title">Docentes Registrados</h3>
+                </div>
+                
+                ${docentes.length === 0 ? 
+                    '<div class="alert alert-info">No hay docentes registrados todavía.</div>' :
+                    `
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Docente</th>
+                                    <th>Usuario</th>
+                                    <th>Distrito</th>
+                                    <th>Grupo</th>
+                                    <th>Asignatura</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${docentes.map(d => `
+                                    <tr>
+                                        <td><strong>${d.nombre} ${d.apellido}</strong></td>
+                                        <td>${d.usuario}</td>
+                                        <td>${d.distrito}</td>
+                                        <td>${obtenerNombreGrupo(d.grupoId)}</td>
+                                        <td>${d.asignatura}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    `
+                }
+            `;
+        }
+
+        function renderDocenteDashboard() {
+            const misParticipantes = obtenerParticipantesDocente();
+            const fechaHoy = new Date().toISOString().split('T')[0];
+            const fechaSeleccionada = document.getElementById('fechaAsistencia')?.value || fechaHoy;
+
+            return `
+                <div class="container dashboard">
+                    <div class="dashboard-header">
+                        <div>
+                            <h2>Panel de Docente</h2>
+                            <p class="text-gray">${currentUser.nombre} ${currentUser.apellido}</p>
+                        </div>
+                        <div class="user-info">
+                            <span class="user-badge">👩‍🏫 Docente</span>
+                            <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Mi Asignación</h3>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                                <div class="stat-label">Distrito</div>
+                                <div class="stat-value">${currentUser.distrito}</div>
+                            </div>
+                            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+                                <div class="stat-label">Grupo</div>
+                                <div class="stat-value">${obtenerNombreGrupo(currentUser.grupoId)}</div>
+                            </div>
+                            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+                                <div class="stat-label">Asignatura</div>
+                                <div class="stat-value" style="font-size: 1.5rem;">${currentUser.asignatura}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Pase de Lista</h3>
+                            <input type="date" id="fechaAsistencia" value="${fechaSeleccionada}" 
+                                   onchange="render()" style="padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid #E8E8F0;">
+                        </div>
+                        
+                        ${misParticipantes.length === 0 ? 
+                            '<div class="alert alert-warning">No hay participantes asignados a tu grupo todavía.</div>' :
+                            `
+                            <div class="alert alert-info">
+                                Total de participantes: <strong>${misParticipantes.length}</strong> | 
+                                Presentes: <strong id="contadorPresentes">0</strong> | 
+                                Ausentes: <strong id="contadorAusentes">0</strong>
+                            </div>
+                            
+                            <div class="attendance-grid">
+                                ${misParticipantes.map(p => {
+                                    const asistencia = obtenerAsistencia(fechaSeleccionada, p.id);
+                                    return `
+                                        <div class="attendance-row">
+                                            <div>
+                                                <div class="participant-info">${p.nombre} ${p.apellido}</div>
+                                                <div class="participant-center">${p.centro}</div>
+                                            </div>
+                                            <div class="checkbox-toggle">
+                                                <label>
+                                                    <input type="checkbox" 
+                                                           class="presente-check" 
+                                                           data-id="${p.id}"
+                                                           ${asistencia.presente ? 'checked' : ''}
+                                                           onchange="toggleAsistencia('${fechaSeleccionada}', '${p.id}', 'presente', this.checked)">
+                                                    ✓ Presente
+                                                </label>
+                                            </div>
+                                            <div class="checkbox-toggle">
+                                                <label>
+                                                    <input type="checkbox" 
+                                                           class="ausente-check"
+                                                           data-id="${p.id}"
+                                                           ${asistencia.ausente ? 'checked' : ''}
+                                                           onchange="toggleAsistencia('${fechaSeleccionada}', '${p.id}', 'ausente', this.checked)">
+                                                    ✗ Ausente
+                                                </label>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                            `
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==================== EVENT HANDLERS ====================
+        function attachLoginHandlers() {
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const tipo = document.getElementById('tipoUsuario').value;
+                const usuario = document.getElementById('usuario').value;
+                const password = document.getElementById('password').value;
+                login(usuario, password, tipo);
+            });
+        }
+
+        function attachAdminHandlers() {
+            // Crear Grupo
+            const crearGrupoForm = document.getElementById('crearGrupoForm');
+            if (crearGrupoForm) {
+                crearGrupoForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const distrito = document.getElementById('distritoGrupo').value;
+                    const nombreGrupo = document.getElementById('nombreGrupo').value;
+                    
+                    if (distrito && nombreGrupo) {
+                        crearGrupo(distrito, nombreGrupo);
+                        this.reset();
+                    }
+                });
+            }
+
+            // Cargar Excel
+            const cargarExcelForm = document.getElementById('cargarExcelForm');
+            if (cargarExcelForm) {
+                const fileUpload = document.getElementById('fileUpload');
+                const fileInput = document.getElementById('excelFile');
+
+                fileUpload.addEventListener('click', () => fileInput.click());
+                
+                fileUpload.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.add('dragover');
+                });
+
+                fileUpload.addEventListener('dragleave', () => {
+                    fileUpload.classList.remove('dragover');
+                });
+
+                fileUpload.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    fileUpload.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        fileInput.files = files;
+                    }
+                });
+
+                cargarExcelForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const distrito = document.getElementById('distritoExcel').value;
+                    const grupoId = document.getElementById('grupoExcel').value;
+                    const asignatura = document.getElementById('asignaturaExcel').value;
+                    const file = fileInput.files[0];
+
+                    if (!distrito || !grupoId || !asignatura) {
+                        mostrarAlerta('Por favor completa todos los campos', 'warning');
+                        return;
+                    }
+
+                    if (!file) {
+                        mostrarAlerta('Por favor selecciona un archivo Excel', 'warning');
+                        return;
+                    }
+
+                    procesarExcel(file, distrito, grupoId, asignatura);
+                    this.reset();
+                });
+            }
+
+            // Registrar Docente
+            const registrarDocenteForm = document.getElementById('registrarDocenteForm');
+            if (registrarDocenteForm) {
+                registrarDocenteForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const nombre = document.getElementById('nombreDocente').value;
+                    const apellido = document.getElementById('apellidoDocente').value;
+                    const usuario = document.getElementById('usuarioDocente').value;
+                    const password = document.getElementById('passwordDocente').value;
+                    const distrito = document.getElementById('distritoDocente').value;
+                    const grupoId = document.getElementById('grupoDocente').value;
+                    const asignatura = document.getElementById('asignaturaDocente').value;
+
+                    if (!distrito || !grupoId || !asignatura) {
+                        mostrarAlerta('Por favor completa todos los campos', 'warning');
+                        return;
+                    }
+
+                    registrarDocente(nombre, apellido, usuario, password, distrito, grupoId, asignatura);
+                    this.reset();
+                });
+            }
+        }
+
+        function attachDocenteHandlers() {
+            actualizarContadores();
+        }
+
+        function actualizarGruposExcel() {
+            const distrito = document.getElementById('distritoExcel').value;
+            const grupoSelect = document.getElementById('grupoExcel');
+            const gruposDistrito = obtenerGruposPorDistrito(distrito);
+
+            if (gruposDistrito.length === 0) {
+                grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
+            } else {
+                grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
+                    gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
+            }
+        }
+
+        function actualizarGruposDocente() {
+            const distrito = document.getElementById('distritoDocente').value;
+            const grupoSelect = document.getElementById('grupoDocente');
+            const gruposDistrito = obtenerGruposPorDistrito(distrito);
+
+            if (gruposDistrito.length === 0) {
+                grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
+            } else {
+                grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
+                    gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
+            }
+        }
+
+        function toggleAsistencia(fecha, participanteId, tipo, checked) {
+            const presenteCheck = document.querySelector(`.presente-check[data-id="${participanteId}"]`);
+            const ausenteCheck = document.querySelector(`.ausente-check[data-id="${participanteId}"]`);
+
+            if (tipo === 'presente' && checked) {
+                ausenteCheck.checked = false;
+                guardarAsistencia(fecha, participanteId, true, false);
+            } else if (tipo === 'ausente' && checked) {
+                presenteCheck.checked = false;
+                guardarAsistencia(fecha, participanteId, false, true);
+            } else {
+                guardarAsistencia(fecha, participanteId, 
+                    tipo === 'presente' ? false : presenteCheck.checked,
+                    tipo === 'ausente' ? false : ausenteCheck.checked
+                );
+            }
+
+            actualizarContadores();
+        }
+
+        function actualizarContadores() {
+            setTimeout(() => {
+                const presentes = document.querySelectorAll('.presente-check:checked').length;
+                const ausentes = document.querySelectorAll('.ausente-check:checked').length;
+                
+                const contadorPresentes = document.getElementById('contadorPresentes');
+                const contadorAusentes = document.getElementById('contadorAusentes');
+                
+                if (contadorPresentes) contadorPresentes.textContent = presentes;
+                if (contadorAusentes) contadorAusentes.textContent = ausentes;
+            }, 100);
+        }
+
+        // ==================== INICIALIZACIÓN ====================
+        window.onload = function() {
+            if (firebaseConfigured) {
+                cargarDatos();
+            } else {
+                render();
+            }
+        };
+    </script>
+</body>
+</html>
