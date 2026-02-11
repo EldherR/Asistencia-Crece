@@ -42,6 +42,7 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: var(--dark);
             line-height: 1.6;
@@ -838,9 +839,38 @@
         </div>
     </div>
 
+    <!-- Modal Editar Usuario -->
+    <div id="modalEditarUsuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">✏️ Editar Usuario</h3>
+                <button class="modal-close" onclick="cerrarModal('modalEditarUsuario')">&times;</button>
+            </div>
+            <form id="formEditarUsuario">
+                <input type="hidden" id="editUsuarioId">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="editNombreUsuario" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="editUsuarioLogin" required>
+                </div>
+                <div class="form-group">
+                    <label>Nueva Contraseña (dejar vacío para mantener la actual)</label>
+                    <input type="password" id="editPasswordUsuario" placeholder="Solo si deseas cambiarla">
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-success" style="flex: 1;">Guardar Cambios</button>
+                    <button type="button" class="btn btn-danger" onclick="eliminarUsuario()" style="flex: 1;">Eliminar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-       const firebaseConfig = {
+         const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -855,6 +885,7 @@
   appId: "1:598785147177:web:d9a0a18c3718511a07f738"
 
 };
+
 
         let db;
         let firebaseConfigured = false;
@@ -1050,17 +1081,27 @@
 
         async function guardarAsistenciaCompleta(fecha, tipo, grupoId, asignatura, participantesData) {
             try {
+                const asistenciaId = `${fecha}_${grupoId}_${asignatura.replace(/\s/g, '')}`;
+                
+                // Verificar si ya existe asistencia para este día
+                const asistenciaExistente = asistencias.find(a => a.id === asistenciaId);
+                
+                if (asistenciaExistente) {
+                    const confirmar = confirm('⚠️ Ya existe una asistencia para este grupo y asignatura en esta fecha.\n\n¿Deseas reemplazarla?');
+                    if (!confirmar) return;
+                }
+                
                 const asistenciaData = {
                     fecha: fecha,
                     tipoEncuentro: tipo,
                     usuarioId: currentUser.id,
+                    nombreDocente: currentUser.nombre,
                     grupoId: grupoId,
                     asignatura: asignatura,
                     participantes: participantesData,
                     fechaGuardado: new Date().toISOString()
                 };
 
-                const asistenciaId = `${fecha}_${grupoId}_${asignatura.replace(/\s/g, '')}`;
                 await db.collection('asistencias').doc(asistenciaId).set(asistenciaData);
 
                 const index = asistencias.findIndex(a => a.id === asistenciaId);
@@ -1270,6 +1311,70 @@
 
             document.getElementById('detalleAsistenciaContent').innerHTML = html;
             abrirModal('modalDetalleAsistencia');
+        }
+
+        function abrirEditarUsuario(usuarioId) {
+            const usuario = usuarios.find(u => u.id === usuarioId);
+            if (!usuario) return;
+
+            document.getElementById('editUsuarioId').value = usuario.id;
+            document.getElementById('editNombreUsuario').value = usuario.nombre;
+            document.getElementById('editUsuarioLogin').value = usuario.usuario;
+            document.getElementById('editPasswordUsuario').value = '';
+            
+            abrirModal('modalEditarUsuario');
+        }
+
+        async function editarUsuario(usuarioId, nombre, usuario, password) {
+            try {
+                const updateData = {
+                    nombre: nombre,
+                    usuario: usuario
+                };
+
+                // Solo actualizar password si se proporcionó uno nuevo
+                if (password && password.trim() !== '') {
+                    updateData.password = password;
+                }
+
+                await db.collection('usuarios').doc(usuarioId).update(updateData);
+                
+                const index = usuarios.findIndex(u => u.id === usuarioId);
+                if (index >= 0) {
+                    usuarios[index].nombre = nombre;
+                    usuarios[index].usuario = usuario;
+                    if (password && password.trim() !== '') {
+                        usuarios[index].password = password;
+                    }
+                }
+                
+                mostrarAlerta('✅ Usuario actualizado exitosamente', 'success');
+                cerrarModal('modalEditarUsuario');
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al actualizar usuario', 'danger');
+            }
+        }
+
+        async function eliminarUsuario() {
+            const usuarioId = document.getElementById('editUsuarioId').value;
+            
+            if (!confirm('⚠️ ¿Estás seguro de eliminar este usuario?\n\nEsta acción no se puede deshacer.')) {
+                return;
+            }
+
+            try {
+                await db.collection('usuarios').doc(usuarioId).delete();
+                usuarios = usuarios.filter(u => u.id !== usuarioId);
+                
+                mostrarAlerta('✅ Usuario eliminado correctamente', 'success');
+                cerrarModal('modalEditarUsuario');
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al eliminar usuario', 'danger');
+            }
         }
 
         function login(usuario, password) {
@@ -1688,6 +1793,7 @@
                                     <th>Usuario</th>
                                     <th>Rol</th>
                                     <th>Asignaciones</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1704,6 +1810,11 @@
                                                 '<span class="text-gray">—</span>'
                                             }
                                         </td>
+                                        <td>
+                                            <button class="btn btn-secondary btn-sm" onclick="abrirEditarUsuario('${u.id}')" style="padding: 0.25rem 0.75rem;">
+                                                ✏️ Editar
+                                            </button>
+                                        </td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -1715,69 +1826,90 @@
         }
 
         function renderAsistenciasAdminTab() {
+            const fechaFiltro = document.getElementById('filtroFechaAsistencia')?.value || '';
+            
             let html = `
                 <div class="card-header">
                     <h3 class="card-title">Todas las Asistencias</h3>
                 </div>
+                
+                <div class="form-group" style="max-width: 300px; margin-bottom: 2rem;">
+                    <label>🔍 Filtrar por Fecha</label>
+                    <input type="date" id="filtroFechaAsistencia" value="${fechaFiltro}" onchange="render()" style="padding: 0.875rem 1rem;">
+                </div>
             `;
 
-            if (asistencias.length === 0) {
-                html += '<div class="alert alert-info">No hay asistencias registradas.</div>';
+            // Filtrar asistencias por fecha si hay filtro
+            let asistenciasFiltradas = asistencias;
+            if (fechaFiltro) {
+                asistenciasFiltradas = asistencias.filter(a => a.fecha === fechaFiltro);
+            }
+
+            if (asistenciasFiltradas.length === 0) {
+                html += `<div class="alert alert-info">No hay asistencias${fechaFiltro ? ' para la fecha seleccionada' : ' registradas'}.</div>`;
             } else {
                 distritos.forEach(distrito => {
                     const gruposDistrito = grupos.filter(g => g.distrito === distrito);
                     
                     if (gruposDistrito.length > 0) {
-                        html += `<div class="distrito-section">
-                            <div class="distrito-header">
-                                <h4>Distrito ${distrito}</h4>
-                            </div>`;
-                        
-                        gruposDistrito.forEach(grupo => {
-                            const asistenciasGrupo = asistencias.filter(a => a.grupoId === grupo.id);
+                        const hayAsistencias = gruposDistrito.some(grupo => 
+                            asistenciasFiltradas.some(a => a.grupoId === grupo.id)
+                        );
+
+                        if (hayAsistencias) {
+                            html += `<div class="distrito-section">
+                                <div class="distrito-header">
+                                    <h4>Distrito ${distrito}</h4>
+                                </div>`;
                             
-                            if (asistenciasGrupo.length > 0) {
-                                html += `
-                                    <h5 style="margin: 1rem 0 0.5rem; color: var(--secondary);">${grupo.nombre}</h5>
-                                    <div class="table-container">
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>Fecha</th>
-                                                    <th>Asignatura</th>
-                                                    <th>Tipo</th>
-                                                    <th>Presentes</th>
-                                                    <th>Ausentes</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${asistenciasGrupo.map(a => {
-                                                    const presentes = a.participantes.filter(p => p.presente).length;
-                                                    const ausentes = a.participantes.filter(p => p.ausente).length;
-                                                    return `
-                                                        <tr>
-                                                            <td>${a.fecha}</td>
-                                                            <td>${a.asignatura}</td>
-                                                            <td><span class="badge badge-${a.tipoEncuentro}">${a.tipoEncuentro}</span></td>
-                                                            <td class="text-success"><strong>${presentes}</strong></td>
-                                                            <td class="text-danger"><strong>${ausentes}</strong></td>
-                                                            <td>
-                                                                <button class="btn btn-secondary btn-sm" onclick="verDetalleAsistencia('${a.id}')" style="padding: 0.25rem 0.75rem;">
-                                                                    👁️ Ver detalle
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    `;
-                                                }).join('')}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                `;
-                            }
-                        });
-                        
-                        html += '</div>';
+                            gruposDistrito.forEach(grupo => {
+                                const asistenciasGrupo = asistenciasFiltradas.filter(a => a.grupoId === grupo.id);
+                                
+                                if (asistenciasGrupo.length > 0) {
+                                    html += `
+                                        <h5 style="margin: 1rem 0 0.5rem; color: var(--secondary);">${grupo.nombre}</h5>
+                                        <div class="table-container">
+                                            <table>
+                                                <thead>
+                                                    <tr>
+                                                        <th>Fecha</th>
+                                                        <th>Asignatura</th>
+                                                        <th>Docente</th>
+                                                        <th>Tipo</th>
+                                                        <th>Presentes</th>
+                                                        <th>Ausentes</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    ${asistenciasGrupo.map(a => {
+                                                        const presentes = a.participantes.filter(p => p.presente).length;
+                                                        const ausentes = a.participantes.filter(p => p.ausente).length;
+                                                        return `
+                                                            <tr>
+                                                                <td>${a.fecha}</td>
+                                                                <td>${a.asignatura}</td>
+                                                                <td>${a.nombreDocente || 'N/A'}</td>
+                                                                <td><span class="badge badge-${a.tipoEncuentro}">${a.tipoEncuentro}</span></td>
+                                                                <td class="text-success"><strong>${presentes}</strong></td>
+                                                                <td class="text-danger"><strong>${ausentes}</strong></td>
+                                                                <td>
+                                                                    <button class="btn btn-secondary btn-sm" onclick="verDetalleAsistencia('${a.id}')" style="padding: 0.25rem 0.75rem;">
+                                                                        👁️ Ver detalle
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        `;
+                                                    }).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    `;
+                                }
+                            });
+                            
+                            html += '</div>';
+                        }
                     }
                 });
             }
@@ -2032,12 +2164,23 @@
             if (formCrearUsuario) {
                 formCrearUsuario.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    await crearUsuario(
-                        document.getElementById('nombreUsuario').value,
-                        document.getElementById('usuarioLogin').value,
-                        document.getElementById('passwordUsuario').value
-                    );
-                    this.reset();
+                    
+                    // Deshabilitar botón para evitar doble click
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn.disabled) return;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Creando...';
+                    
+                    try {
+                        await crearUsuario(
+                            document.getElementById('nombreUsuario').value,
+                            document.getElementById('usuarioLogin').value,
+                            document.getElementById('passwordUsuario').value
+                        );
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Crear Usuario';
+                    }
                 });
             }
 
@@ -2064,6 +2207,19 @@
                     this.reset();
                     document.getElementById('asignacionesContainer').innerHTML = '';
                     contadorAsignaciones = 0;
+                });
+            }
+
+            const formEditarUsuario = document.getElementById('formEditarUsuario');
+            if (formEditarUsuario) {
+                formEditarUsuario.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const usuarioId = document.getElementById('editUsuarioId').value;
+                    const nombre = document.getElementById('editNombreUsuario').value;
+                    const usuario = document.getElementById('editUsuarioLogin').value;
+                    const password = document.getElementById('editPasswordUsuario').value;
+                    
+                    await editarUsuario(usuarioId, nombre, usuario, password);
                 });
             }
 
