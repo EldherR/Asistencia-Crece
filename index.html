@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Asistencia CRECE v2</title>
+    <title>Sistema de Asistencia CRECE v3</title>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -54,6 +54,72 @@
             padding: 2rem;
         }
 
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #F0F0F5;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            color: var(--gray);
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #F0F0F5;
+            color: var(--dark);
+        }
+
         /* Login Screen */
         .login-container {
             min-height: 100vh;
@@ -82,6 +148,11 @@
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .login-header {
@@ -197,25 +268,14 @@
             background: #D63757;
         }
 
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-        }
-
-        .btn-outline:hover {
-            background: var(--primary);
-            color: var(--white);
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
         }
 
         /* Dashboard */
         .dashboard {
             animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
 
         .dashboard-header {
@@ -349,51 +409,53 @@
         /* Groups Display */
         .groups-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
 
-        .group-item {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: var(--white);
-            padding: 1.5rem;
+        .group-card {
+            background: var(--white);
+            border: 2px solid #E8E8F0;
             border-radius: var(--radius);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            animation: slideUp 0.3s ease;
-        }
-
-        .group-info h4 {
-            font-size: 1.1rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .group-info p {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .delete-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: var(--white);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            padding: 1.5rem;
             transition: all 0.3s ease;
         }
 
-        .delete-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+        .group-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+        }
+
+        .group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .group-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--secondary);
+        }
+
+        .group-distrito {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .asignatura-tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: var(--white);
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
         }
 
         /* File Upload */
@@ -408,11 +470,6 @@
         }
 
         .file-upload:hover {
-            border-color: var(--primary);
-            background: #FFF5F2;
-        }
-
-        .file-upload.dragover {
             border-color: var(--primary);
             background: #FFF5F2;
         }
@@ -486,7 +543,7 @@
             cursor: pointer;
         }
 
-        /* Radio Toggle for Encounter Type */
+        /* Radio Toggle */
         .radio-group {
             display: flex;
             gap: 1.5rem;
@@ -494,6 +551,7 @@
             background: #F7F9FC;
             border-radius: var(--radius);
             margin-bottom: 1.5rem;
+            border: 2px solid var(--warning);
         }
 
         .radio-option {
@@ -512,7 +570,8 @@
         .radio-option label {
             margin: 0;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1rem;
         }
 
         /* Stats */
@@ -586,63 +645,6 @@
             border-left: 4px solid #F44336;
         }
 
-        /* Filters */
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1.5rem;
-            background: #F7F9FC;
-            border-radius: var(--radius);
-        }
-
-        /* Save Button Container */
-        .save-container {
-            position: sticky;
-            bottom: 0;
-            background: var(--white);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            margin-top: 2rem;
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--gray);
-        }
-
-        .spinner {
-            border: 4px solid #F3F3F3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Utility Classes */
-        .hidden {
-            display: none !important;
-        }
-
-        .mt-2 { margin-top: 1rem; }
-        .mb-2 { margin-bottom: 1rem; }
-        .text-center { text-align: center; }
-        .text-success { color: var(--success); }
-        .text-danger { color: var(--danger); }
-        .text-gray { color: var(--gray); }
-
         /* Badge */
         .badge {
             display: inline-block;
@@ -662,6 +664,74 @@
             background: #F3E5F5;
             color: #7B1FA2;
         }
+
+        .badge-docente {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .badge-visualizador {
+            background: #FFF3E0;
+            color: #EF6C00;
+        }
+
+        /* District Section */
+        .distrito-section {
+            margin-bottom: 2rem;
+        }
+
+        .distrito-header {
+            background: linear-gradient(135deg, var(--secondary), #003D6E);
+            color: var(--white);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+        }
+
+        /* Save Container */
+        .save-container {
+            position: sticky;
+            bottom: 0;
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        /* Historial */
+        .historial-item {
+            background: #F7F9FC;
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .historial-date {
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .historial-stats {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .mt-2 { margin-top: 1rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
+        .text-gray { color: var(--gray); }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -686,68 +756,81 @@
 
             .checkbox-toggle {
                 grid-column: 1 / -1;
-                justify-content: flex-start;
             }
 
-            .stats {
+            .groups-container {
                 grid-template-columns: 1fr;
             }
-
-            .filters {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Firebase Warning */
-        .firebase-warning {
-            background: linear-gradient(135deg, #FFD54F, #FFA726);
-            color: var(--dark);
-            padding: 2rem;
-            border-radius: 20px;
-            margin-top: 2rem;
-            box-shadow: 0 8px 24px rgba(255, 213, 79, 0.3);
-        }
-
-        .firebase-warning h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark);
-        }
-
-        .firebase-warning code {
-            display: block;
-            background: var(--white);
-            padding: 1rem;
-            border-radius: var(--radius);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            overflow-x: auto;
-            color: var(--secondary);
-        }
-
-        .firebase-warning ol {
-            margin-left: 1.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .firebase-warning li {
-            margin-bottom: 0.5rem;
-        }
-
-        .firebase-warning a {
-            color: var(--secondary);
-            font-weight: 600;
-            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div id="app"></div>
 
+    <!-- Modal Crear Usuario -->
+    <div id="modalUsuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">👤 Crear Usuario</h3>
+                <button class="modal-close" onclick="cerrarModal('modalUsuario')">&times;</button>
+            </div>
+            <form id="formCrearUsuario">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="nombreUsuario" required>
+                </div>
+                <div class="form-group">
+                    <label>Usuario</label>
+                    <input type="text" id="usuarioLogin" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="passwordUsuario" required>
+                </div>
+                <button type="submit" class="btn btn-success">Crear Usuario</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Asignar Rol -->
+    <div id="modalRol" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">🎯 Asignar Rol</h3>
+                <button class="modal-close" onclick="cerrarModal('modalRol')">&times;</button>
+            </div>
+            <form id="formAsignarRol">
+                <div class="form-group">
+                    <label>Seleccionar Usuario</label>
+                    <select id="selectUsuario" required>
+                        <option value="">Selecciona un usuario</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Rol</label>
+                    <select id="selectRol" required onchange="toggleCamposRol()">
+                        <option value="">Selecciona un rol</option>
+                        <option value="docente">Docente</option>
+                        <option value="visualizador">Visualizador (Solo consulta)</option>
+                    </select>
+                </div>
+                <div id="camposDocente" class="hidden">
+                    <div class="form-group">
+                        <label>Grupos y Asignaturas</label>
+                        <div id="asignacionesContainer"></div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="agregarAsignacion()">
+                            + Agregar Grupo
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">Asignar Rol</button>
+            </form>
+        </div>
+    </div>
+
     <script>
-// ==================== CONFIGURACIÓN FIREBASE ====================
-             const firebaseConfig = {
+        // ==================== CONFIGURACIÓN FIREBASE ====================
+     const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -762,7 +845,8 @@
   appId: "1:598785147177:web:d9a0a18c3718511a07f738"
 
 };
-        // Inicializar Firebase
+
+
         let db;
         let firebaseConfigured = false;
 
@@ -782,35 +866,34 @@
         let currentUser = null;
         let currentScreen = 'login';
         let currentTab = 'grupos';
+        let grupoActual = null;
+        let asignaturaActual = null;
+        
         let distritos = ['01-01', '01-02', '01-03', '01-04', '01-05'];
         let asignaturas = ['Lengua Española', 'Matemática', 'Ciencias Sociales', 'Ciencias Naturales'];
         let grupos = [];
-        let docentes = [];
+        let usuarios = [];
         let participantes = [];
         let asistencias = [];
         
-        // Estado temporal para el pase de lista
         let asistenciaTemporal = {};
         let tipoEncuentro = 'presencial';
+        let contadorAsignaciones = 0;
 
         // ==================== FUNCIONES DE BASE DE DATOS ====================
         async function cargarDatos() {
             if (!firebaseConfigured) return;
 
             try {
-                // Cargar grupos
                 const gruposSnapshot = await db.collection('grupos').get();
                 grupos = gruposSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Cargar docentes
-                const docentesSnapshot = await db.collection('docentes').get();
-                docentes = docentesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const usuariosSnapshot = await db.collection('usuarios').get();
+                usuarios = usuariosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Cargar participantes
                 const participantesSnapshot = await db.collection('participantes').get();
                 participantes = participantesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                // Cargar asistencias
                 const asistenciasSnapshot = await db.collection('asistencias').get();
                 asistencias = asistenciasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -822,11 +905,6 @@
         }
 
         async function crearGrupo(distrito, nombreGrupo) {
-            if (!firebaseConfigured) {
-                mostrarAlerta('Firebase no está configurado', 'danger');
-                return;
-            }
-
             try {
                 const grupoData = {
                     distrito: distrito,
@@ -835,17 +913,13 @@
                 };
                 
                 const docRef = await db.collection('grupos').add(grupoData);
-                
-                grupos.push({
-                    id: docRef.id,
-                    ...grupoData
-                });
+                grupos.push({ id: docRef.id, ...grupoData });
                 
                 mostrarAlerta('✅ Grupo creado exitosamente', 'success');
                 render();
             } catch (error) {
-                console.error('Error creando grupo:', error);
-                mostrarAlerta('❌ Error al crear grupo: ' + error.message, 'danger');
+                console.error('Error:', error);
+                mostrarAlerta('Error al crear grupo', 'danger');
             }
         }
 
@@ -855,56 +929,74 @@
             try {
                 await db.collection('grupos').doc(grupoId).delete();
                 grupos = grupos.filter(g => g.id !== grupoId);
-                
                 mostrarAlerta('Grupo eliminado correctamente', 'success');
                 render();
             } catch (error) {
-                console.error('Error eliminando grupo:', error);
+                console.error('Error:', error);
                 mostrarAlerta('Error al eliminar grupo', 'danger');
             }
         }
 
-        async function registrarDocente(nombre, apellido, usuario, password, distrito, grupoId, asignatura) {
+        async function crearUsuario(nombre, usuario, password) {
             try {
-                const docRef = await db.collection('docentes').add({
+                const docRef = await db.collection('usuarios').add({
                     nombre: nombre,
-                    apellido: apellido,
                     usuario: usuario,
                     password: password,
-                    distrito: distrito,
-                    grupoId: grupoId,
-                    asignatura: asignatura,
-                    fechaRegistro: new Date().toISOString()
+                    rol: null,
+                    asignaciones: [],
+                    fechaCreacion: new Date().toISOString()
                 });
                 
-                docentes.push({
+                usuarios.push({
                     id: docRef.id,
-                    nombre, apellido, usuario, password, distrito, grupoId, asignatura
+                    nombre, usuario, password, rol: null, asignaciones: []
                 });
                 
-                mostrarAlerta('Docente registrado exitosamente', 'success');
+                mostrarAlerta('✅ Usuario creado exitosamente', 'success');
+                cerrarModal('modalUsuario');
+                actualizarSelectUsuarios();
                 render();
             } catch (error) {
-                console.error('Error registrando docente:', error);
-                mostrarAlerta('Error al registrar docente', 'danger');
+                console.error('Error:', error);
+                mostrarAlerta('Error al crear usuario', 'danger');
             }
         }
 
-        async function cargarParticipantes(distrito, grupoId, asignatura, datos) {
+        async function asignarRol(usuarioId, rol, asignaciones = []) {
             try {
-                // Limpiar participantes anteriores del mismo grupo y asignatura
+                await db.collection('usuarios').doc(usuarioId).update({
+                    rol: rol,
+                    asignaciones: asignaciones
+                });
+                
+                const index = usuarios.findIndex(u => u.id === usuarioId);
+                if (index >= 0) {
+                    usuarios[index].rol = rol;
+                    usuarios[index].asignaciones = asignaciones;
+                }
+                
+                mostrarAlerta('✅ Rol asignado exitosamente', 'success');
+                cerrarModal('modalRol');
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al asignar rol', 'danger');
+            }
+        }
+
+        async function cargarParticipantes(distrito, grupoId, datos) {
+            try {
                 const participantesAntiguos = participantes.filter(p => 
-                    p.distrito === distrito && p.grupoId === grupoId && p.asignatura === asignatura
+                    p.distrito === distrito && p.grupoId === grupoId
                 );
 
                 const batch = db.batch();
                 participantesAntiguos.forEach(p => {
-                    const docRef = db.collection('participantes').doc(p.id);
-                    batch.delete(docRef);
+                    batch.delete(db.collection('participantes').doc(p.id));
                 });
                 await batch.commit();
 
-                // Agregar nuevos participantes
                 const promises = datos.map(item => 
                     db.collection('participantes').add({
                         nombre: item.nombre,
@@ -912,16 +1004,14 @@
                         centro: item.centro,
                         distrito: distrito,
                         grupoId: grupoId,
-                        asignatura: asignatura,
                         fechaCarga: new Date().toISOString()
                     })
                 );
 
                 const results = await Promise.all(promises);
                 
-                // Actualizar estado local
                 participantes = participantes.filter(p => 
-                    !(p.distrito === distrito && p.grupoId === grupoId && p.asignatura === asignatura)
+                    !(p.distrito === distrito && p.grupoId === grupoId)
                 );
                 
                 results.forEach((docRef, index) => {
@@ -929,41 +1019,33 @@
                         id: docRef.id,
                         ...datos[index],
                         distrito,
-                        grupoId,
-                        asignatura
+                        grupoId
                     });
                 });
 
-                mostrarAlerta(`${datos.length} participantes cargados exitosamente`, 'success');
+                mostrarAlerta(`✅ ${datos.length} participantes cargados`, 'success');
                 render();
             } catch (error) {
-                console.error('Error cargando participantes:', error);
+                console.error('Error:', error);
                 mostrarAlerta('Error al cargar participantes', 'danger');
             }
         }
 
-        async function guardarAsistenciaCompleta(fecha, tipo, participantesData) {
+        async function guardarAsistenciaCompleta(fecha, tipo, grupoId, asignatura, participantesData) {
             try {
-                const batch = db.batch();
                 const asistenciaData = {
                     fecha: fecha,
                     tipoEncuentro: tipo,
-                    docenteId: currentUser.id,
-                    distrito: currentUser.distrito,
-                    grupoId: currentUser.grupoId,
-                    asignatura: currentUser.asignatura,
+                    usuarioId: currentUser.id,
+                    grupoId: grupoId,
+                    asignatura: asignatura,
                     participantes: participantesData,
                     fechaGuardado: new Date().toISOString()
                 };
 
-                // Crear documento único por fecha/docente
-                const asistenciaId = `${fecha}_${currentUser.id}`;
-                const docRef = db.collection('asistencias').doc(asistenciaId);
-                batch.set(docRef, asistenciaData);
+                const asistenciaId = `${fecha}_${grupoId}_${asignatura.replace(/\s/g, '')}`;
+                await db.collection('asistencias').doc(asistenciaId).set(asistenciaData);
 
-                await batch.commit();
-
-                // Actualizar estado local
                 const index = asistencias.findIndex(a => a.id === asistenciaId);
                 if (index >= 0) {
                     asistencias[index] = { id: asistenciaId, ...asistenciaData };
@@ -972,14 +1054,13 @@
                 }
 
                 mostrarAlerta('✅ Asistencia guardada exitosamente', 'success');
-                
-                // Limpiar estado temporal
                 asistenciaTemporal = {};
-                
+                grupoActual = null;
+                asignaturaActual = null;
                 render();
             } catch (error) {
-                console.error('Error guardando asistencia:', error);
-                mostrarAlerta('❌ Error al guardar asistencia: ' + error.message, 'danger');
+                console.error('Error:', error);
+                mostrarAlerta('Error al guardar asistencia', 'danger');
             }
         }
 
@@ -998,22 +1079,95 @@
             }, 4000);
         }
 
-        function login(usuario, password, tipo) {
-            if (tipo === 'admin') {
-                if (usuario === 'admin' && password === 'E.r40%6205$C') {
-                    currentUser = { tipo: 'admin', usuario: 'admin' };
-                    currentScreen = 'dashboard';
-                    render();
-                    return true;
-                }
+        function abrirModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function cerrarModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function toggleCamposRol() {
+            const rol = document.getElementById('selectRol').value;
+            const camposDocente = document.getElementById('camposDocente');
+            
+            if (rol === 'docente') {
+                camposDocente.classList.remove('hidden');
             } else {
-                const docente = docentes.find(d => d.usuario === usuario && d.password === password);
-                if (docente) {
-                    currentUser = { tipo: 'docente', ...docente };
-                    currentScreen = 'dashboard';
-                    render();
-                    return true;
-                }
+                camposDocente.classList.add('hidden');
+            }
+        }
+
+        function agregarAsignacion() {
+            contadorAsignaciones++;
+            const container = document.getElementById('asignacionesContainer');
+            const div = document.createElement('div');
+            div.className = 'form-group';
+            div.id = `asignacion-${contadorAsignaciones}`;
+            div.innerHTML = `
+                <div style="border: 2px solid #E8E8F0; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <strong>Asignación #${contadorAsignaciones}</strong>
+                        <button type="button" onclick="eliminarAsignacion(${contadorAsignaciones})" style="background: var(--danger); color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer;">✕</button>
+                    </div>
+                    <select class="asignacion-distrito" required style="margin-bottom: 0.5rem;" onchange="actualizarGruposAsignacion(${contadorAsignaciones})">
+                        <option value="">Selecciona distrito</option>
+                        ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                    </select>
+                    <select class="asignacion-grupo" id="grupo-${contadorAsignaciones}" required style="margin-bottom: 0.5rem;">
+                        <option value="">Primero selecciona distrito</option>
+                    </select>
+                    <select class="asignacion-asignatura" required>
+                        <option value="">Selecciona asignatura</option>
+                        ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function eliminarAsignacion(id) {
+            const element = document.getElementById(`asignacion-${id}`);
+            if (element) element.remove();
+        }
+
+        function actualizarGruposAsignacion(id) {
+            const asignacionDiv = document.getElementById(`asignacion-${id}`);
+            const distritoSelect = asignacionDiv.querySelector('.asignacion-distrito');
+            const grupoSelect = document.getElementById(`grupo-${id}`);
+            
+            const distrito = distritoSelect.value;
+            const gruposDistrito = grupos.filter(g => g.distrito === distrito);
+
+            if (gruposDistrito.length === 0) {
+                grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
+            } else {
+                grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
+                    gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
+            }
+        }
+
+        function actualizarSelectUsuarios() {
+            const select = document.getElementById('selectUsuario');
+            select.innerHTML = '<option value="">Selecciona un usuario</option>' +
+                usuarios.map(u => `<option value="${u.id}">${u.nombre} (${u.usuario})</option>`).join('');
+        }
+
+        function login(usuario, password) {
+            const user = usuarios.find(u => u.usuario === usuario && u.password === password);
+            
+            if (usuario === 'admin' && password === 'E.r40%6205$C') {
+                currentUser = { tipo: 'admin', usuario: 'admin' };
+                currentScreen = 'dashboard';
+                render();
+                return true;
+            }
+            
+            if (user && user.rol) {
+                currentUser = { tipo: user.rol, ...user };
+                currentScreen = 'dashboard';
+                render();
+                return true;
             }
             
             mostrarAlerta('Usuario o contraseña incorrectos', 'danger');
@@ -1024,6 +1178,8 @@
             currentUser = null;
             currentScreen = 'login';
             currentTab = 'grupos';
+            grupoActual = null;
+            asignaturaActual = null;
             asistenciaTemporal = {};
             render();
         }
@@ -1033,8 +1189,19 @@
             render();
         }
 
-        function obtenerGruposPorDistrito(distrito) {
-            return grupos.filter(g => g.distrito === distrito);
+        function iniciarPaseLista(grupoId, asignatura) {
+            grupoActual = grupoId;
+            asignaturaActual = asignatura;
+            asistenciaTemporal = {};
+            tipoEncuentro = 'presencial';
+            render();
+        }
+
+        function cancelarPaseLista() {
+            grupoActual = null;
+            asignaturaActual = null;
+            asistenciaTemporal = {};
+            render();
         }
 
         function obtenerNombreGrupo(grupoId) {
@@ -1042,24 +1209,19 @@
             return grupo ? grupo.nombre : 'N/A';
         }
 
-        function obtenerNombreDistrito(grupoId) {
+        function obtenerDistritoGrupo(grupoId) {
             const grupo = grupos.find(g => g.id === grupoId);
             return grupo ? grupo.distrito : 'N/A';
         }
 
-        function obtenerParticipantesDocente() {
-            if (!currentUser || currentUser.tipo !== 'docente') return [];
-            
-            return participantes.filter(p => 
-                p.distrito === currentUser.distrito &&
-                p.grupoId === currentUser.grupoId &&
-                p.asignatura === currentUser.asignatura
-            );
+        function obtenerParticipantesGrupo(grupoId) {
+            return participantes.filter(p => p.grupoId === grupoId);
         }
 
-        function obtenerAsistenciaGuardada(fecha) {
-            const asistenciaId = `${fecha}_${currentUser.id}`;
-            return asistencias.find(a => a.id === asistenciaId);
+        function obtenerAsistenciasGrupo(grupoId, asignatura) {
+            return asistencias.filter(a => 
+                a.grupoId === grupoId && a.asignatura === asignatura
+            ).sort((a, b) => b.fecha.localeCompare(a.fecha));
         }
 
         function toggleAsistenciaTemporal(participanteId, tipo) {
@@ -1086,8 +1248,52 @@
             tipoEncuentro = tipo;
         }
 
+        function actualizarContadores() {
+            setTimeout(() => {
+                const presentes = Object.values(asistenciaTemporal).filter(a => a.presente).length;
+                const ausentes = Object.values(asistenciaTemporal).filter(a => a.ausente).length;
+                
+                const contadorPresentes = document.getElementById('contadorPresentes');
+                const contadorAusentes = document.getElementById('contadorAusentes');
+                
+                if (contadorPresentes) contadorPresentes.textContent = presentes;
+                if (contadorAusentes) contadorAusentes.textContent = ausentes;
+            }, 100);
+        }
+
+        function guardarAsistencia() {
+            const fecha = document.getElementById('fechaAsistencia').value;
+            const misParticipantes = obtenerParticipantesGrupo(grupoActual);
+            
+            const participantesData = misParticipantes.map(p => ({
+                id: p.id,
+                nombre: p.nombre,
+                apellido: p.apellido,
+                centro: p.centro,
+                presente: asistenciaTemporal[p.id]?.presente || false,
+                ausente: asistenciaTemporal[p.id]?.ausente || false
+            }));
+            
+            guardarAsistenciaCompleta(fecha, tipoEncuentro, grupoActual, asignaturaActual, participantesData);
+        }
+
+        function renderCheckboxes() {
+            const misParticipantes = obtenerParticipantesGrupo(grupoActual);
+            
+            misParticipantes.forEach(p => {
+                const asist = asistenciaTemporal[p.id] || { presente: false, ausente: false };
+                const presenteCheck = document.querySelector(`.presente-check[data-id="${p.id}"]`);
+                const ausenteCheck = document.querySelector(`.ausente-check[data-id="${p.id}"]`);
+                
+                if (presenteCheck) presenteCheck.checked = asist.presente;
+                if (ausenteCheck) ausenteCheck.checked = asist.ausente;
+            });
+            
+            actualizarContadores();
+        }
+
         // ==================== PROCESAMIENTO DE EXCEL ====================
-        function procesarExcel(file, distrito, grupoId, asignatura) {
+        function procesarExcel(file, distrito, grupoId) {
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -1108,9 +1314,9 @@
                         return;
                     }
 
-                    cargarParticipantes(distrito, grupoId, asignatura, participantesData);
+                    cargarParticipantes(distrito, grupoId, participantesData);
                 } catch (error) {
-                    console.error('Error procesando Excel:', error);
+                    console.error('Error:', error);
                     mostrarAlerta('Error al procesar el archivo Excel', 'danger');
                 }
             };
@@ -1123,7 +1329,7 @@
             const app = document.getElementById('app');
             
             if (!firebaseConfigured) {
-                app.innerHTML = renderFirebaseWarning();
+                app.innerHTML = '<div class="login-container"><div class="login-card"><h1>Firebase no configurado</h1></div></div>';
                 return;
             }
 
@@ -1134,24 +1340,17 @@
                 if (currentUser.tipo === 'admin') {
                     app.innerHTML = renderAdminDashboard();
                     attachAdminHandlers();
-                } else {
-                    app.innerHTML = renderDocenteDashboard();
-                    attachDocenteHandlers();
+                } else if (currentUser.tipo === 'docente') {
+                    if (grupoActual && asignaturaActual) {
+                        app.innerHTML = renderPaseLista();
+                        attachPaseListaHandlers();
+                    } else {
+                        app.innerHTML = renderDocenteDashboard();
+                    }
+                } else if (currentUser.tipo === 'visualizador') {
+                    app.innerHTML = renderVisualizadorDashboard();
                 }
             }
-        }
-
-        function renderFirebaseWarning() {
-            return `
-                <div class="login-container">
-                    <div class="login-card">
-                        <div class="firebase-warning">
-                            <h3>⚠️ Firebase no configurado</h3>
-                            <p>Para que el sistema funcione, necesitas configurar Firebase.</p>
-                        </div>
-                    </div>
-                </div>
-            `;
         }
 
         function renderLogin() {
@@ -1160,18 +1359,10 @@
                     <div class="login-card">
                         <div class="login-header">
                             <h1>🎓 Sistema CRECE</h1>
-                            <p>Control de Asistencia v2</p>
+                            <p>Control de Asistencia v3</p>
                         </div>
                         
                         <form id="loginForm">
-                            <div class="form-group">
-                                <label>Tipo de Usuario</label>
-                                <select id="tipoUsuario" required>
-                                    <option value="admin">Administrador</option>
-                                    <option value="docente">Docente</option>
-                                </select>
-                            </div>
-                            
                             <div class="form-group">
                                 <label>Usuario</label>
                                 <input type="text" id="usuario" placeholder="Ingresa tu usuario" required>
@@ -1189,7 +1380,7 @@
                         
                         <div class="alert alert-info mt-2">
                             <strong>Credenciales de prueba:</strong><br>
-                            Admin: usuario=<code>admin</code> / contraseña=<code>E.r40%6205$C</code>
+                            Admin: <code>admin</code> / <code>E.r40%6205$C</code>
                         </div>
                     </div>
                 </div>
@@ -1210,16 +1401,13 @@
                     <div class="card">
                         <div class="tabs">
                             <button class="tab ${currentTab === 'grupos' ? 'active' : ''}" onclick="cambiarTab('grupos')">
-                                📁 Gestión de Grupos
+                                📁 Grupos
                             </button>
                             <button class="tab ${currentTab === 'excel' ? 'active' : ''}" onclick="cambiarTab('excel')">
-                                📊 Cargar Participantes
+                                📊 Participantes
                             </button>
-                            <button class="tab ${currentTab === 'docentes' ? 'active' : ''}" onclick="cambiarTab('docentes')">
-                                👨‍🏫 Registro de Docentes
-                            </button>
-                            <button class="tab ${currentTab === 'vista' ? 'active' : ''}" onclick="cambiarTab('vista')">
-                                📋 Vista General
+                            <button class="tab ${currentTab === 'usuarios' ? 'active' : ''}" onclick="cambiarTab('usuarios')">
+                                👥 Usuarios
                             </button>
                             <button class="tab ${currentTab === 'asistencias' ? 'active' : ''}" onclick="cambiarTab('asistencias')">
                                 📈 Asistencias
@@ -1236,30 +1424,22 @@
 
         function renderTabContent() {
             switch (currentTab) {
-                case 'grupos':
-                    return renderGruposTab();
-                case 'excel':
-                    return renderExcelTab();
-                case 'docentes':
-                    return renderDocentesTab();
-                case 'vista':
-                    return renderVistaTab();
-                case 'asistencias':
-                    return renderAsistenciasTab();
-                default:
-                    return '';
+                case 'grupos': return renderGruposTab();
+                case 'excel': return renderExcelTab();
+                case 'usuarios': return renderUsuariosTab();
+                case 'asistencias': return renderAsistenciasAdminTab();
+                default: return '';
             }
         }
 
         function renderGruposTab() {
             let html = `
                 <div class="card-header">
-                    <h3 class="card-title">Crear Grupos por Distrito</h3>
+                    <h3 class="card-title">Gestión de Grupos</h3>
                 </div>
                 
                 <div class="alert alert-info">
-                    Total de grupos creados: <strong>${grupos.length}</strong><br>
-                    <small>Cada grupo tendrá las 4 asignaturas con diferentes docentes</small>
+                    Total de grupos: <strong>${grupos.length}</strong>
                 </div>
                 
                 <form id="crearGrupoForm" class="mb-2">
@@ -1273,31 +1453,29 @@
                     
                     <div class="form-group">
                         <label>Nombre del Grupo</label>
-                        <input type="text" id="nombreGrupo" placeholder="Ej: Grupo A, Primer Ciclo, Matutino..." required>
+                        <input type="text" id="nombreGrupo" placeholder="Ej: Grupo A, Primer Ciclo..." required>
                     </div>
                     
-                    <button type="submit" class="btn btn-success" id="btnCrearGrupo">
-                        ➕ Crear Grupo
-                    </button>
+                    <button type="submit" class="btn btn-success">➕ Crear Grupo</button>
                 </form>
                 
                 <h4 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--secondary);">Grupos Creados</h4>
             `;
 
             distritos.forEach(distrito => {
-                const gruposDistrito = obtenerGruposPorDistrito(distrito);
+                const gruposDistrito = grupos.filter(g => g.distrito === distrito);
                 
                 if (gruposDistrito.length > 0) {
                     html += `
-                        <h5 style="margin-top: 1.5rem; color: var(--gray);">Distrito ${distrito} (${gruposDistrito.length} grupos)</h5>
+                        <h5 style="margin-top: 1.5rem; color: var(--gray);">Distrito ${distrito} (${gruposDistrito.length})</h5>
                         <div class="groups-container">
                             ${gruposDistrito.map(grupo => `
-                                <div class="group-item">
-                                    <div class="group-info">
-                                        <h4>${grupo.nombre}</h4>
-                                        <p>Distrito ${grupo.distrito}</p>
+                                <div class="group-card">
+                                    <div class="group-header">
+                                        <div class="group-title">${grupo.nombre}</div>
+                                        <button onclick="eliminarGrupo('${grupo.id}')" style="background: var(--danger); color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 4px; cursor: pointer;">✕</button>
                                     </div>
-                                    <button class="delete-btn" onclick="eliminarGrupo('${grupo.id}')">✕</button>
+                                    <div class="group-distrito">Distrito ${grupo.distrito}</div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1306,7 +1484,7 @@
             });
 
             if (grupos.length === 0) {
-                html += `<div class="alert alert-info">No hay grupos creados. Crea el primer grupo usando el formulario arriba.</div>`;
+                html += '<div class="alert alert-info">No hay grupos creados.</div>';
             }
 
             return html;
@@ -1315,12 +1493,11 @@
         function renderExcelTab() {
             return `
                 <div class="card-header">
-                    <h3 class="card-title">Cargar Participantes desde Excel</h3>
+                    <h3 class="card-title">Cargar Participantes</h3>
                 </div>
                 
                 <div class="alert alert-info">
-                    El archivo Excel debe tener las columnas: <strong>Nombre</strong>, <strong>Apellido</strong>, <strong>Centro educativo donde trabaja</strong><br>
-                    <small>Los participantes son los mismos para las 4 asignaturas del grupo</small>
+                    Los participantes son compartidos por las 4 asignaturas del grupo
                 </div>
                 
                 <form id="cargarExcelForm">
@@ -1340,20 +1517,12 @@
                     </div>
                     
                     <div class="form-group">
-                        <label>Asignatura</label>
-                        <select id="asignaturaExcel" required>
-                            <option value="">Selecciona una asignatura</option>
-                            ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
                         <label>Archivo Excel</label>
                         <div class="file-upload" id="fileUpload">
                             <input type="file" id="excelFile" accept=".xlsx,.xls" required>
                             <div class="upload-icon">📄</div>
-                            <p>Click para seleccionar archivo o arrastra aquí</p>
-                            <small class="text-gray">Formatos: .xlsx, .xls</small>
+                            <p>Click para seleccionar archivo</p>
+                            <small class="text-gray">Columnas: Nombre, Apellido, Centro educativo donde trabaja</small>
                         </div>
                     </div>
                     
@@ -1362,93 +1531,47 @@
             `;
         }
 
-        function renderDocentesTab() {
+        function renderUsuariosTab() {
             return `
                 <div class="card-header">
-                    <h3 class="card-title">Registrar Nuevo Docente</h3>
+                    <h3 class="card-title">Gestión de Usuarios</h3>
+                    <div>
+                        <button class="btn btn-success btn-sm" onclick="abrirModal('modalUsuario')">
+                            👤 Crear Usuario
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="abrirModal('modalRol')">
+                            🎯 Asignar Rol
+                        </button>
+                    </div>
                 </div>
                 
-                <div class="alert alert-info">
-                    Cada grupo puede tener hasta 4 docentes (uno por asignatura)
-                </div>
-                
-                <form id="registrarDocenteForm">
-                    <div class="form-group">
-                        <label>Nombre</label>
-                        <input type="text" id="nombreDocente" placeholder="Nombre del docente" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Apellido</label>
-                        <input type="text" id="apellidoDocente" placeholder="Apellido del docente" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Usuario</label>
-                        <input type="text" id="usuarioDocente" placeholder="Nombre de usuario para login" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="passwordDocente" placeholder="Contraseña del docente" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Distrito</label>
-                        <select id="distritoDocente" required onchange="actualizarGruposDocente()">
-                            <option value="">Selecciona un distrito</option>
-                            ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Grupo</label>
-                        <select id="grupoDocente" required>
-                            <option value="">Primero selecciona un distrito</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>Asignatura</label>
-                        <select id="asignaturaDocente" required>
-                            <option value="">Selecciona una asignatura</option>
-                            ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
-                        </select>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-success">✅ Registrar Docente</button>
-                </form>
-            `;
-        }
-
-        function renderVistaTab() {
-            return `
-                <div class="card-header">
-                    <h3 class="card-title">Docentes Registrados</h3>
-                </div>
-                
-                ${docentes.length === 0 ? 
-                    '<div class="alert alert-info">No hay docentes registrados todavía.</div>' :
+                ${usuarios.length === 0 ? 
+                    '<div class="alert alert-info">No hay usuarios registrados.</div>' :
                     `
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Docente</th>
+                                    <th>Nombre</th>
                                     <th>Usuario</th>
-                                    <th>Distrito</th>
-                                    <th>Grupo</th>
-                                    <th>Asignatura</th>
+                                    <th>Rol</th>
+                                    <th>Asignaciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${docentes.map(d => `
+                                ${usuarios.map(u => `
                                     <tr>
-                                        <td><strong>${d.nombre} ${d.apellido}</strong></td>
-                                        <td>${d.usuario}</td>
-                                        <td>${d.distrito}</td>
-                                        <td>${obtenerNombreGrupo(d.grupoId)}</td>
-                                        <td>${d.asignatura}</td>
+                                        <td><strong>${u.nombre}</strong></td>
+                                        <td>${u.usuario}</td>
+                                        <td>
+                                            ${u.rol ? `<span class="badge badge-${u.rol}">${u.rol}</span>` : '<span class="text-gray">Sin rol</span>'}
+                                        </td>
+                                        <td>
+                                            ${u.asignaciones && u.asignaciones.length > 0 ? 
+                                                `${u.asignaciones.length} asignación(es)` : 
+                                                '<span class="text-gray">—</span>'
+                                            }
+                                        </td>
                                     </tr>
                                 `).join('')}
                             </tbody>
@@ -1459,71 +1582,65 @@
             `;
         }
 
-        function renderAsistenciasTab() {
-            // Agrupar asistencias por distrito y grupo
-            const asistenciasPorGrupo = {};
-            
-            asistencias.forEach(asist => {
-                const key = `${asist.distrito}_${asist.grupoId}`;
-                if (!asistenciasPorGrupo[key]) {
-                    asistenciasPorGrupo[key] = {
-                        distrito: asist.distrito,
-                        grupoId: asist.grupoId,
-                        asistencias: []
-                    };
-                }
-                asistenciasPorGrupo[key].asistencias.push(asist);
-            });
-
+        function renderAsistenciasAdminTab() {
             let html = `
                 <div class="card-header">
-                    <h3 class="card-title">Registro de Asistencias</h3>
+                    <h3 class="card-title">Todas las Asistencias</h3>
                 </div>
             `;
 
-            if (Object.keys(asistenciasPorGrupo).length === 0) {
-                html += '<div class="alert alert-info">No hay asistencias registradas todavía.</div>';
+            if (asistencias.length === 0) {
+                html += '<div class="alert alert-info">No hay asistencias registradas.</div>';
             } else {
-                Object.values(asistenciasPorGrupo).forEach(grupoData => {
-                    html += `
-                        <div class="mb-2">
-                            <h4 style="color: var(--secondary); margin-bottom: 1rem;">
-                                Distrito ${grupoData.distrito} - ${obtenerNombreGrupo(grupoData.grupoId)}
-                            </h4>
-                            <div class="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Fecha</th>
-                                            <th>Asignatura</th>
-                                            <th>Docente</th>
-                                            <th>Tipo</th>
-                                            <th>Presentes</th>
-                                            <th>Ausentes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${grupoData.asistencias.map(asist => {
-                                            const docente = docentes.find(d => d.id === asist.docenteId);
-                                            const presentes = asist.participantes.filter(p => p.presente).length;
-                                            const ausentes = asist.participantes.filter(p => p.ausente).length;
-                                            
-                                            return `
+                distritos.forEach(distrito => {
+                    const gruposDistrito = grupos.filter(g => g.distrito === distrito);
+                    
+                    if (gruposDistrito.length > 0) {
+                        html += `<div class="distrito-section">
+                            <div class="distrito-header">
+                                <h4>Distrito ${distrito}</h4>
+                            </div>`;
+                        
+                        gruposDistrito.forEach(grupo => {
+                            const asistenciasGrupo = asistencias.filter(a => a.grupoId === grupo.id);
+                            
+                            if (asistenciasGrupo.length > 0) {
+                                html += `
+                                    <h5 style="margin: 1rem 0 0.5rem; color: var(--secondary);">${grupo.nombre}</h5>
+                                    <div class="table-container">
+                                        <table>
+                                            <thead>
                                                 <tr>
-                                                    <td>${asist.fecha}</td>
-                                                    <td>${asist.asignatura}</td>
-                                                    <td>${docente ? `${docente.nombre} ${docente.apellido}` : 'N/A'}</td>
-                                                    <td><span class="badge badge-${asist.tipoEncuentro}">${asist.tipoEncuentro}</span></td>
-                                                    <td class="text-success"><strong>${presentes}</strong></td>
-                                                    <td class="text-danger"><strong>${ausentes}</strong></td>
+                                                    <th>Fecha</th>
+                                                    <th>Asignatura</th>
+                                                    <th>Tipo</th>
+                                                    <th>Presentes</th>
+                                                    <th>Ausentes</th>
                                                 </tr>
-                                            `;
-                                        }).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `;
+                                            </thead>
+                                            <tbody>
+                                                ${asistenciasGrupo.map(a => {
+                                                    const presentes = a.participantes.filter(p => p.presente).length;
+                                                    const ausentes = a.participantes.filter(p => p.ausente).length;
+                                                    return `
+                                                        <tr>
+                                                            <td>${a.fecha}</td>
+                                                            <td>${a.asignatura}</td>
+                                                            <td><span class="badge badge-${a.tipoEncuentro}">${a.tipoEncuentro}</span></td>
+                                                            <td class="text-success"><strong>${presentes}</strong></td>
+                                                            <td class="text-danger"><strong>${ausentes}</strong></td>
+                                                        </tr>
+                                                    `;
+                                                }).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                `;
+                            }
+                        });
+                        
+                        html += '</div>';
+                    }
                 });
             }
 
@@ -1531,87 +1648,137 @@
         }
 
         function renderDocenteDashboard() {
-            const misParticipantes = obtenerParticipantesDocente();
-            const fechaHoy = new Date().toISOString().split('T')[0];
-            const fechaSeleccionada = document.getElementById('fechaAsistencia')?.value || fechaHoy;
-            const asistenciaGuardada = obtenerAsistenciaGuardada(fechaSeleccionada);
-
-            // Si hay asistencia guardada, cargarla en el estado temporal
-            if (asistenciaGuardada && Object.keys(asistenciaTemporal).length === 0) {
-                asistenciaGuardada.participantes.forEach(p => {
-                    asistenciaTemporal[p.id] = {
-                        presente: p.presente,
-                        ausente: p.ausente
-                    };
-                });
-                tipoEncuentro = asistenciaGuardada.tipoEncuentro || 'presencial';
-            }
-
-            return `
+            let html = `
                 <div class="container dashboard">
                     <div class="dashboard-header">
                         <div>
                             <h2>Panel de Docente</h2>
-                            <p class="text-gray">${currentUser.nombre} ${currentUser.apellido}</p>
+                            <p class="text-gray">${currentUser.nombre}</p>
                         </div>
                         <div class="user-info">
                             <span class="user-badge">👩‍🏫 Docente</span>
                             <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
                         </div>
                     </div>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Mi Asignación</h3>
+            `;
+
+            if (!currentUser.asignaciones || currentUser.asignaciones.length === 0) {
+                html += '<div class="card"><div class="alert alert-warning">No tienes grupos asignados todavía.</div></div>';
+            } else {
+                // Agrupar por distrito
+                const porDistrito = {};
+                currentUser.asignaciones.forEach(asig => {
+                    const distrito = obtenerDistritoGrupo(asig.grupoId);
+                    if (!porDistrito[distrito]) porDistrito[distrito] = [];
+                    porDistrito[distrito].push(asig);
+                });
+
+                Object.keys(porDistrito).sort().forEach(distrito => {
+                    html += `
+                        <div class="card">
+                            <div class="distrito-header">
+                                <h3>Distrito ${distrito}</h3>
+                            </div>
+                            <div class="groups-container">
+                    `;
+
+                    porDistrito[distrito].forEach(asig => {
+                        const grupo = grupos.find(g => g.id === asig.grupoId);
+                        const participantesGrupo = obtenerParticipantesGrupo(asig.grupoId);
+                        const historial = obtenerAsistenciasGrupo(asig.grupoId, asig.asignatura);
+
+                        html += `
+                            <div class="group-card">
+                                <div class="group-header">
+                                    <div class="group-title">${grupo ? grupo.nombre : 'N/A'}</div>
+                                </div>
+                                <div class="asignatura-tag">${asig.asignatura}</div>
+                                <p class="text-gray" style="margin: 0.5rem 0; font-size: 0.85rem;">
+                                    ${participantesGrupo.length} participantes
+                                </p>
+                                
+                                <button class="btn btn-primary btn-sm" onclick="iniciarPaseLista('${asig.grupoId}', '${asig.asignatura}')" style="width: 100%; margin-top: 0.5rem;">
+                                    ✏️ Pasar Lista
+                                </button>
+                                
+                                ${historial.length > 0 ? `
+                                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E8E8F0;">
+                                        <h5 style="font-size: 0.85rem; color: var(--gray); margin-bottom: 0.5rem;">Últimas asistencias:</h5>
+                                        ${historial.slice(0, 3).map(h => {
+                                            const presentes = h.participantes.filter(p => p.presente).length;
+                                            const ausentes = h.participantes.filter(p => p.ausente).length;
+                                            return `
+                                                <div class="historial-item" style="padding: 0.5rem; margin-bottom: 0.25rem;">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <span style="font-size: 0.75rem;">${h.fecha}</span>
+                                                        <span class="badge badge-${h.tipoEncuentro}">${h.tipoEncuentro}</span>
+                                                    </div>
+                                                    <div style="font-size: 0.75rem; color: var(--gray); margin-top: 0.25rem;">
+                                                        ✓ ${presentes} | ✗ ${ausentes}
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
                         </div>
-                        <div class="stats">
-                            <div class="stat-card" style="background: linear-gradient(135deg, #667eea, #764ba2);">
-                                <div class="stat-label">Distrito</div>
-                                <div class="stat-value">${currentUser.distrito}</div>
-                            </div>
-                            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
-                                <div class="stat-label">Grupo</div>
-                                <div class="stat-value">${obtenerNombreGrupo(currentUser.grupoId)}</div>
-                            </div>
-                            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
-                                <div class="stat-label">Asignatura</div>
-                                <div class="stat-value" style="font-size: 1.5rem;">${currentUser.asignatura}</div>
-                            </div>
+                    `;
+                });
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function renderPaseLista() {
+            const grupo = grupos.find(g => g.id === grupoActual);
+            const misParticipantes = obtenerParticipantesGrupo(grupoActual);
+            const fechaHoy = new Date().toISOString().split('T')[0];
+
+            return `
+                <div class="container dashboard">
+                    <div class="dashboard-header">
+                        <div>
+                            <h2>Pase de Lista</h2>
+                            <p class="text-gray">${grupo ? grupo.nombre : 'N/A'} - ${asignaturaActual}</p>
+                        </div>
+                        <div class="user-info">
+                            <button class="btn btn-danger" onclick="cancelarPaseLista()">← Volver</button>
                         </div>
                     </div>
                     
                     <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Pase de Lista</h3>
-                            <input type="date" id="fechaAsistencia" value="${fechaSeleccionada}" 
-                                   onchange="render()" style="padding: 0.5rem 1rem; border-radius: 8px; border: 2px solid #E8E8F0;">
+                        <div class="alert alert-warning">
+                            <strong>⚠️ IMPORTANTE:</strong> Selecciona el tipo de encuentro antes de pasar lista
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="fechaAsistencia" value="${fechaHoy}" style="padding: 0.875rem 1rem;">
+                        </div>
+                        
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="tipoPresencial" name="tipoEncuentro" value="presencial" checked onchange="cambiarTipoEncuentro('presencial')">
+                                <label for="tipoPresencial">🏫 PRESENCIAL</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="tipoVirtual" name="tipoEncuentro" value="virtual" onchange="cambiarTipoEncuentro('virtual')">
+                                <label for="tipoVirtual">💻 VIRTUAL</label>
+                            </div>
                         </div>
                         
                         ${misParticipantes.length === 0 ? 
-                            '<div class="alert alert-warning">No hay participantes asignados a tu grupo todavía.</div>' :
+                            '<div class="alert alert-warning">No hay participantes en este grupo.</div>' :
                             `
-                            ${asistenciaGuardada ? 
-                                '<div class="alert alert-success">✅ Asistencia ya guardada para esta fecha. Puedes modificarla y volver a guardar.</div>' : 
-                                ''
-                            }
-                            
-                            <div class="radio-group">
-                                <div class="radio-option">
-                                    <input type="radio" id="tipoPresencial" name="tipoEncuentro" value="presencial" 
-                                           ${tipoEncuentro === 'presencial' ? 'checked' : ''}
-                                           onchange="cambiarTipoEncuentro('presencial')">
-                                    <label for="tipoPresencial">🏫 Presencial</label>
-                                </div>
-                                <div class="radio-option">
-                                    <input type="radio" id="tipoVirtual" name="tipoEncuentro" value="virtual"
-                                           ${tipoEncuentro === 'virtual' ? 'checked' : ''}
-                                           onchange="cambiarTipoEncuentro('virtual')">
-                                    <label for="tipoVirtual">💻 Virtual</label>
-                                </div>
-                            </div>
-                            
                             <div class="alert alert-info">
-                                Total de participantes: <strong>${misParticipantes.length}</strong> | 
+                                Total: <strong>${misParticipantes.length}</strong> | 
                                 Presentes: <strong id="contadorPresentes">0</strong> | 
                                 Ausentes: <strong id="contadorAusentes">0</strong>
                             </div>
@@ -1628,9 +1795,7 @@
                                             </div>
                                             <div class="checkbox-toggle">
                                                 <label>
-                                                    <input type="checkbox" 
-                                                           class="presente-check" 
-                                                           data-id="${p.id}"
+                                                    <input type="checkbox" class="presente-check" data-id="${p.id}"
                                                            ${asist.presente ? 'checked' : ''}
                                                            onchange="toggleAsistenciaTemporal('${p.id}', 'presente'); renderCheckboxes();">
                                                     ✓ Presente
@@ -1638,9 +1803,7 @@
                                             </div>
                                             <div class="checkbox-toggle">
                                                 <label>
-                                                    <input type="checkbox" 
-                                                           class="ausente-check"
-                                                           data-id="${p.id}"
+                                                    <input type="checkbox" class="ausente-check" data-id="${p.id}"
                                                            ${asist.ausente ? 'checked' : ''}
                                                            onchange="toggleAsistenciaTemporal('${p.id}', 'ausente'); renderCheckboxes();">
                                                     ✗ Ausente
@@ -1663,169 +1826,120 @@
             `;
         }
 
-        function renderCheckboxes() {
-            const fechaSeleccionada = document.getElementById('fechaAsistencia').value;
-            const misParticipantes = obtenerParticipantesDocente();
-            
-            misParticipantes.forEach(p => {
-                const asist = asistenciaTemporal[p.id] || { presente: false, ausente: false };
-                const presenteCheck = document.querySelector(`.presente-check[data-id="${p.id}"]`);
-                const ausenteCheck = document.querySelector(`.ausente-check[data-id="${p.id}"]`);
-                
-                if (presenteCheck) presenteCheck.checked = asist.presente;
-                if (ausenteCheck) ausenteCheck.checked = asist.ausente;
-            });
-            
-            actualizarContadores();
-        }
-
-        function guardarAsistencia() {
-            const fecha = document.getElementById('fechaAsistencia').value;
-            const misParticipantes = obtenerParticipantesDocente();
-            
-            const participantesData = misParticipantes.map(p => ({
-                id: p.id,
-                nombre: p.nombre,
-                apellido: p.apellido,
-                centro: p.centro,
-                presente: asistenciaTemporal[p.id]?.presente || false,
-                ausente: asistenciaTemporal[p.id]?.ausente || false
-            }));
-            
-            guardarAsistenciaCompleta(fecha, tipoEncuentro, participantesData);
+        function renderVisualizadorDashboard() {
+            return `
+                <div class="container dashboard">
+                    <div class="dashboard-header">
+                        <div>
+                            <h2>Panel de Consulta</h2>
+                            <p class="text-gray">${currentUser.nombre}</p>
+                        </div>
+                        <div class="user-info">
+                            <span class="user-badge">👁️ Visualizador</span>
+                            <button class="btn btn-danger" onclick="logout()">Cerrar Sesión</button>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        ${renderAsistenciasAdminTab()}
+                    </div>
+                </div>
+            `;
         }
 
         // ==================== EVENT HANDLERS ====================
         function attachLoginHandlers() {
             document.getElementById('loginForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const tipo = document.getElementById('tipoUsuario').value;
-                const usuario = document.getElementById('usuario').value;
-                const password = document.getElementById('password').value;
-                login(usuario, password, tipo);
+                login(document.getElementById('usuario').value, document.getElementById('password').value);
             });
         }
 
         function attachAdminHandlers() {
-            // Crear Grupo
             const crearGrupoForm = document.getElementById('crearGrupoForm');
             if (crearGrupoForm) {
                 crearGrupoForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    
-                    const btnCrear = document.getElementById('btnCrearGrupo');
-                    btnCrear.disabled = true;
-                    btnCrear.textContent = '⏳ Creando...';
-                    
                     const distrito = document.getElementById('distritoGrupo').value;
-                    const nombreGrupo = document.getElementById('nombreGrupo').value;
-                    
-                    if (!distrito) {
-                        mostrarAlerta('⚠️ Por favor selecciona un distrito', 'warning');
-                        btnCrear.disabled = false;
-                        btnCrear.textContent = '➕ Crear Grupo';
-                        return;
-                    }
-                    
-                    if (!nombreGrupo || nombreGrupo.trim() === '') {
-                        mostrarAlerta('⚠️ Por favor ingresa un nombre para el grupo', 'warning');
-                        btnCrear.disabled = false;
-                        btnCrear.textContent = '➕ Crear Grupo';
-                        return;
-                    }
-                    
-                    try {
-                        await crearGrupo(distrito, nombreGrupo.trim());
-                        this.reset();
-                    } catch (error) {
-                        console.error('Error:', error);
-                    } finally {
-                        btnCrear.disabled = false;
-                        btnCrear.textContent = '➕ Crear Grupo';
-                    }
+                    const nombre = document.getElementById('nombreGrupo').value;
+                    await crearGrupo(distrito, nombre);
+                    this.reset();
                 });
             }
 
-            // Cargar Excel
             const cargarExcelForm = document.getElementById('cargarExcelForm');
             if (cargarExcelForm) {
                 const fileUpload = document.getElementById('fileUpload');
                 const fileInput = document.getElementById('excelFile');
 
                 fileUpload.addEventListener('click', () => fileInput.click());
-                
-                fileUpload.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    fileUpload.classList.add('dragover');
-                });
-
-                fileUpload.addEventListener('dragleave', () => {
-                    fileUpload.classList.remove('dragover');
-                });
-
-                fileUpload.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    fileUpload.classList.remove('dragover');
-                    const files = e.dataTransfer.files;
-                    if (files.length > 0) {
-                        fileInput.files = files;
-                    }
-                });
 
                 cargarExcelForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     const distrito = document.getElementById('distritoExcel').value;
                     const grupoId = document.getElementById('grupoExcel').value;
-                    const asignatura = document.getElementById('asignaturaExcel').value;
                     const file = fileInput.files[0];
 
-                    if (!distrito || !grupoId || !asignatura) {
+                    if (!distrito || !grupoId || !file) {
                         mostrarAlerta('Por favor completa todos los campos', 'warning');
                         return;
                     }
 
-                    if (!file) {
-                        mostrarAlerta('Por favor selecciona un archivo Excel', 'warning');
-                        return;
-                    }
-
-                    procesarExcel(file, distrito, grupoId, asignatura);
+                    procesarExcel(file, distrito, grupoId);
                     this.reset();
                 });
             }
 
-            // Registrar Docente
-            const registrarDocenteForm = document.getElementById('registrarDocenteForm');
-            if (registrarDocenteForm) {
-                registrarDocenteForm.addEventListener('submit', function(e) {
+            const formCrearUsuario = document.getElementById('formCrearUsuario');
+            if (formCrearUsuario) {
+                formCrearUsuario.addEventListener('submit', async function(e) {
                     e.preventDefault();
-                    const nombre = document.getElementById('nombreDocente').value;
-                    const apellido = document.getElementById('apellidoDocente').value;
-                    const usuario = document.getElementById('usuarioDocente').value;
-                    const password = document.getElementById('passwordDocente').value;
-                    const distrito = document.getElementById('distritoDocente').value;
-                    const grupoId = document.getElementById('grupoDocente').value;
-                    const asignatura = document.getElementById('asignaturaDocente').value;
-
-                    if (!distrito || !grupoId || !asignatura) {
-                        mostrarAlerta('Por favor completa todos los campos', 'warning');
-                        return;
-                    }
-
-                    registrarDocente(nombre, apellido, usuario, password, distrito, grupoId, asignatura);
+                    await crearUsuario(
+                        document.getElementById('nombreUsuario').value,
+                        document.getElementById('usuarioLogin').value,
+                        document.getElementById('passwordUsuario').value
+                    );
                     this.reset();
                 });
             }
+
+            const formAsignarRol = document.getElementById('formAsignarRol');
+            if (formAsignarRol) {
+                formAsignarRol.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const usuarioId = document.getElementById('selectUsuario').value;
+                    const rol = document.getElementById('selectRol').value;
+
+                    let asignaciones = [];
+                    if (rol === 'docente') {
+                        const asignacionDivs = document.querySelectorAll('[id^="asignacion-"]');
+                        asignacionDivs.forEach(div => {
+                            const grupoId = div.querySelector('.asignacion-grupo').value;
+                            const asignatura = div.querySelector('.asignacion-asignatura').value;
+                            if (grupoId && asignatura) {
+                                asignaciones.push({ grupoId, asignatura });
+                            }
+                        });
+                    }
+
+                    await asignarRol(usuarioId, rol, asignaciones);
+                    this.reset();
+                    document.getElementById('asignacionesContainer').innerHTML = '';
+                    contadorAsignaciones = 0;
+                });
+            }
+
+            actualizarSelectUsuarios();
         }
 
-        function attachDocenteHandlers() {
+        function attachPaseListaHandlers() {
             actualizarContadores();
         }
 
         function actualizarGruposExcel() {
             const distrito = document.getElementById('distritoExcel').value;
             const grupoSelect = document.getElementById('grupoExcel');
-            const gruposDistrito = obtenerGruposPorDistrito(distrito);
+            const gruposDistrito = grupos.filter(g => g.distrito === distrito);
 
             if (gruposDistrito.length === 0) {
                 grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
@@ -1833,32 +1947,6 @@
                 grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
                     gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
             }
-        }
-
-        function actualizarGruposDocente() {
-            const distrito = document.getElementById('distritoDocente').value;
-            const grupoSelect = document.getElementById('grupoDocente');
-            const gruposDistrito = obtenerGruposPorDistrito(distrito);
-
-            if (gruposDistrito.length === 0) {
-                grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
-            } else {
-                grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
-                    gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
-            }
-        }
-
-        function actualizarContadores() {
-            setTimeout(() => {
-                const presentes = Object.values(asistenciaTemporal).filter(a => a.presente).length;
-                const ausentes = Object.values(asistenciaTemporal).filter(a => a.ausente).length;
-                
-                const contadorPresentes = document.getElementById('contadorPresentes');
-                const contadorAusentes = document.getElementById('contadorAusentes');
-                
-                if (contadorPresentes) contadorPresentes.textContent = presentes;
-                if (contadorAusentes) contadorAusentes.textContent = ausentes;
-            }, 100);
         }
 
         // ==================== INICIALIZACIÓN ====================
