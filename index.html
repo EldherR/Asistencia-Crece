@@ -870,7 +870,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-        const firebaseConfig = {
+          const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -885,7 +885,6 @@
   appId: "1:598785147177:web:d9a0a18c3718511a07f738"
 
 };
-
 
         let db;
         let firebaseConfigured = false;
@@ -919,6 +918,9 @@
         let asistenciaTemporal = {};
         let tipoEncuentro = 'presencial';
         let contadorAsignaciones = 0;
+        let configuracion = {
+            permitirEditarCentros: false
+        };
 
         // ==================== FUNCIONES DE BASE DE DATOS ====================
         async function cargarDatos() {
@@ -936,6 +938,12 @@
 
                 const asistenciasSnapshot = await db.collection('asistencias').get();
                 asistencias = asistenciasSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                // Cargar configuración
+                const configDoc = await db.collection('configuracion').doc('general').get();
+                if (configDoc.exists) {
+                    configuracion = { ...configuracion, ...configDoc.data() };
+                }
 
                 render();
             } catch (error) {
@@ -1492,6 +1500,48 @@
             mostrarAlerta('✅ Excel descargado exitosamente', 'success');
         }
 
+        async function toggleEditarCentros() {
+            try {
+                const nuevoEstado = !configuracion.permitirEditarCentros;
+                
+                await db.collection('configuracion').doc('general').set({
+                    permitirEditarCentros: nuevoEstado
+                });
+                
+                configuracion.permitirEditarCentros = nuevoEstado;
+                
+                mostrarAlerta(
+                    nuevoEstado ? 
+                    '✅ Edición de centros HABILITADA' : 
+                    '⛔ Edición de centros DESHABILITADA', 
+                    nuevoEstado ? 'success' : 'warning'
+                );
+                
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al cambiar configuración', 'danger');
+            }
+        }
+
+        async function actualizarCentroEducativo(participanteId, nuevoCentro) {
+            try {
+                await db.collection('participantes').doc(participanteId).update({
+                    centro: nuevoCentro
+                });
+                
+                const index = participantes.findIndex(p => p.id === participanteId);
+                if (index >= 0) {
+                    participantes[index].centro = nuevoCentro;
+                }
+                
+                mostrarAlerta('✅ Centro educativo actualizado', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al actualizar centro', 'danger');
+            }
+        }
+
         function login(usuario, password) {
             // Admin login
             if (usuario === 'admin' && password === 'E.r40%6205$C') {
@@ -1610,6 +1660,20 @@
         function guardarAsistencia() {
             const fecha = document.getElementById('fechaAsistencia').value;
             const misParticipantes = obtenerParticipantesGrupo(grupoActual);
+            
+            // Validar que todos los participantes estén marcados
+            const sinMarcar = misParticipantes.filter(p => {
+                const asist = asistenciaTemporal[p.id] || { presente: false, ausente: false };
+                return !asist.presente && !asist.ausente;
+            });
+
+            if (sinMarcar.length > 0) {
+                mostrarAlerta(
+                    `⚠️ Faltan ${sinMarcar.length} participante(s) por marcar.\n\nTodos deben estar marcados como Presente o Ausente.`, 
+                    'warning'
+                );
+                return;
+            }
             
             const participantesData = misParticipantes.map(p => ({
                 id: p.id,
@@ -1764,6 +1828,9 @@
                             <button class="tab ${currentTab === 'asistencias' ? 'active' : ''}" onclick="cambiarTab('asistencias')">
                                 📈 Asistencias
                             </button>
+                            <button class="tab ${currentTab === 'configuracion' ? 'active' : ''}" onclick="cambiarTab('configuracion')">
+                                ⚙️ Configuración
+                            </button>
                         </div>
                         
                         <div id="tabContent">
@@ -1780,6 +1847,7 @@
                 case 'excel': return renderExcelTab();
                 case 'usuarios': return renderUsuariosTab();
                 case 'asistencias': return renderAsistenciasAdminTab();
+                case 'configuracion': return renderConfiguracionTab();
                 default: return '';
             }
         }
@@ -1937,6 +2005,45 @@
                     </div>
                     `
                 }
+            `;
+        }
+
+        function renderConfiguracionTab() {
+            return `
+                <div class="card-header">
+                    <h3 class="card-title">Configuración del Sistema</h3>
+                </div>
+                
+                <div style="max-width: 600px;">
+                    <div style="background: #F7F9FC; padding: 2rem; border-radius: 12px; border-left: 4px solid var(--primary);">
+                        <h4 style="color: var(--secondary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            ✏️ Edición de Centros Educativos
+                        </h4>
+                        
+                        <p style="color: var(--gray); margin-bottom: 1.5rem; line-height: 1.6;">
+                            Permite a los docentes editar el nombre del centro educativo de los participantes durante el pase de lista.
+                        </p>
+                        
+                        <div style="display: flex; align-items: center; gap: 1rem; background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <strong style="color: var(--dark);">Estado actual:</strong>
+                                <span style="display: block; margin-top: 0.25rem; color: ${configuracion.permitirEditarCentros ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">
+                                    ${configuracion.permitirEditarCentros ? '✅ HABILITADO' : '⛔ DESHABILITADO'}
+                                </span>
+                            </div>
+                            <button 
+                                class="btn ${configuracion.permitirEditarCentros ? 'btn-danger' : 'btn-success'}" 
+                                onclick="toggleEditarCentros()"
+                                style="white-space: nowrap;">
+                                ${configuracion.permitirEditarCentros ? '⛔ Deshabilitar' : '✅ Habilitar'}
+                            </button>
+                        </div>
+                        
+                        <div style="background: #FFF3E0; padding: 1rem; border-radius: 8px; font-size: 0.9rem; color: #E65100;">
+                            <strong>⚠️ Importante:</strong> Los cambios afectan a todos los docentes inmediatamente.
+                        </div>
+                    </div>
+                </div>
             `;
         }
 
@@ -2159,6 +2266,12 @@
                             <strong>⚠️ IMPORTANTE:</strong> Selecciona el tipo de encuentro antes de pasar lista
                         </div>
                         
+                        ${configuracion.permitirEditarCentros ? `
+                            <div class="alert alert-info">
+                                <strong>✏️ Edición habilitada:</strong> Puedes editar el centro educativo de cada participante
+                            </div>
+                        ` : ''}
+                        
                         <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; text-align: center;">
                             <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">📅 Fecha de hoy</div>
                             <div style="font-size: 1.5rem; font-weight: 700; text-transform: capitalize;">${fechaFormateada}</div>
@@ -2193,7 +2306,15 @@
                                             <div class="attendance-number">${index + 1}</div>
                                             <div>
                                                 <div class="participant-info">${p.nombre} ${p.apellido}</div>
-                                                <div class="participant-center">${p.centro}</div>
+                                                ${configuracion.permitirEditarCentros ? `
+                                                    <input type="text" 
+                                                           value="${p.centro}" 
+                                                           onblur="actualizarCentroEducativo('${p.id}', this.value)"
+                                                           style="font-size: 0.85rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem; border: 1px solid #E8E8F0; border-radius: 4px; width: 100%;"
+                                                           placeholder="Centro educativo">
+                                                ` : `
+                                                    <div class="participant-center">${p.centro}</div>
+                                                `}
                                             </div>
                                             <div class="checkbox-toggle">
                                                 <label>
