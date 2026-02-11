@@ -870,7 +870,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-         const firebaseConfig = {
+        const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -1377,6 +1377,121 @@
             }
         }
 
+        function descargarAsistenciaExcel(asistenciaId) {
+            const asistencia = asistencias.find(a => a.id === asistenciaId);
+            if (!asistencia) return;
+
+            const grupo = grupos.find(g => g.id === asistencia.grupoId);
+            
+            // Preparar datos para Excel
+            const datos = asistencia.participantes.map((p, index) => ({
+                'No.': index + 1,
+                'Nombre': p.nombre,
+                'Apellido': p.apellido,
+                'Centro Educativo': p.centro,
+                'Asistencia': p.presente ? 'Presente' : (p.ausente ? 'Ausente' : 'Sin marcar')
+            }));
+
+            // Crear worksheet
+            const ws = XLSX.utils.json_to_sheet(datos);
+
+            // Ajustar ancho de columnas
+            ws['!cols'] = [
+                { wch: 6 },  // No.
+                { wch: 20 }, // Nombre
+                { wch: 20 }, // Apellido
+                { wch: 40 }, // Centro
+                { wch: 12 }  // Asistencia
+            ];
+
+            // Crear workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Asistencia');
+
+            // Agregar hoja de resumen
+            const resumen = [
+                { 'Campo': 'Fecha', 'Valor': asistencia.fecha },
+                { 'Campo': 'Distrito', 'Valor': obtenerDistritoGrupo(asistencia.grupoId) },
+                { 'Campo': 'Grupo', 'Valor': grupo ? grupo.nombre : 'N/A' },
+                { 'Campo': 'Asignatura', 'Valor': asistencia.asignatura },
+                { 'Campo': 'Docente', 'Valor': asistencia.nombreDocente || 'N/A' },
+                { 'Campo': 'Tipo de Encuentro', 'Valor': asistencia.tipoEncuentro },
+                { 'Campo': '', 'Valor': '' },
+                { 'Campo': 'Total Participantes', 'Valor': asistencia.participantes.length },
+                { 'Campo': 'Presentes', 'Valor': asistencia.participantes.filter(p => p.presente).length },
+                { 'Campo': 'Ausentes', 'Valor': asistencia.participantes.filter(p => p.ausente).length },
+                { 'Campo': 'Sin Marcar', 'Valor': asistencia.participantes.filter(p => !p.presente && !p.ausente).length }
+            ];
+            
+            const wsResumen = XLSX.utils.json_to_sheet(resumen);
+            wsResumen['!cols'] = [{ wch: 20 }, { wch: 30 }];
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+            // Descargar
+            const fileName = `Asistencia_${grupo ? grupo.nombre : 'Grupo'}_${asistencia.asignatura}_${asistencia.fecha}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            mostrarAlerta('✅ Excel descargado exitosamente', 'success');
+        }
+
+        function descargarTodasAsistenciasFecha(fecha) {
+            const asistenciasFecha = asistencias.filter(a => a.fecha === fecha);
+            
+            if (asistenciasFecha.length === 0) {
+                mostrarAlerta('No hay asistencias para esta fecha', 'warning');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+
+            asistenciasFecha.forEach(asistencia => {
+                const grupo = grupos.find(g => g.id === asistencia.grupoId);
+                
+                const datos = asistencia.participantes.map((p, index) => ({
+                    'No.': index + 1,
+                    'Nombre': p.nombre,
+                    'Apellido': p.apellido,
+                    'Centro Educativo': p.centro,
+                    'Asistencia': p.presente ? 'Presente' : (p.ausente ? 'Ausente' : 'Sin marcar')
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(datos);
+                ws['!cols'] = [
+                    { wch: 6 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 12 }
+                ];
+
+                const sheetName = `${grupo ? grupo.nombre : 'Grupo'} - ${asistencia.asignatura}`.substring(0, 31);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            });
+
+            // Hoja de resumen general
+            const resumenGeneral = asistenciasFecha.map(a => {
+                const grupo = grupos.find(g => g.id === a.grupoId);
+                return {
+                    'Distrito': obtenerDistritoGrupo(a.grupoId),
+                    'Grupo': grupo ? grupo.nombre : 'N/A',
+                    'Asignatura': a.asignatura,
+                    'Docente': a.nombreDocente || 'N/A',
+                    'Tipo': a.tipoEncuentro,
+                    'Total': a.participantes.length,
+                    'Presentes': a.participantes.filter(p => p.presente).length,
+                    'Ausentes': a.participantes.filter(p => p.ausente).length
+                };
+            });
+
+            const wsResumen = XLSX.utils.json_to_sheet(resumenGeneral);
+            wsResumen['!cols'] = [
+                { wch: 10 }, { wch: 20 }, { wch: 25 }, { wch: 20 }, 
+                { wch: 12 }, { wch: 8 }, { wch: 10 }, { wch: 10 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
+
+            const fileName = `Asistencias_${fecha}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+            
+            mostrarAlerta('✅ Excel descargado exitosamente', 'success');
+        }
+
         function login(usuario, password) {
             // Admin login
             if (usuario === 'admin' && password === 'E.r40%6205$C') {
@@ -1833,9 +1948,16 @@
                     <h3 class="card-title">Todas las Asistencias</h3>
                 </div>
                 
-                <div class="form-group" style="max-width: 300px; margin-bottom: 2rem;">
-                    <label>🔍 Filtrar por Fecha</label>
-                    <input type="date" id="filtroFechaAsistencia" value="${fechaFiltro}" onchange="render()" style="padding: 0.875rem 1rem;">
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; align-items: end;">
+                    <div class="form-group" style="max-width: 300px; margin-bottom: 0;">
+                        <label>🔍 Filtrar por Fecha</label>
+                        <input type="date" id="filtroFechaAsistencia" value="${fechaFiltro}" onchange="render()" style="padding: 0.875rem 1rem;">
+                    </div>
+                    ${fechaFiltro ? `
+                        <button class="btn btn-success btn-sm" onclick="descargarTodasAsistenciasFecha('${fechaFiltro}')" style="padding: 0.875rem 1.5rem;">
+                            📥 Descargar Todo (${fechaFiltro})
+                        </button>
+                    ` : ''}
                 </div>
             `;
 
@@ -1894,8 +2016,11 @@
                                                                 <td class="text-success"><strong>${presentes}</strong></td>
                                                                 <td class="text-danger"><strong>${ausentes}</strong></td>
                                                                 <td>
-                                                                    <button class="btn btn-secondary btn-sm" onclick="verDetalleAsistencia('${a.id}')" style="padding: 0.25rem 0.75rem;">
-                                                                        👁️ Ver detalle
+                                                                    <button class="btn btn-secondary btn-sm" onclick="verDetalleAsistencia('${a.id}')" style="padding: 0.25rem 0.75rem; margin-right: 0.25rem;">
+                                                                        👁️ Ver
+                                                                    </button>
+                                                                    <button class="btn btn-success btn-sm" onclick="descargarAsistenciaExcel('${a.id}')" style="padding: 0.25rem 0.75rem;">
+                                                                        📥 Excel
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -2010,6 +2135,12 @@
             const grupo = grupos.find(g => g.id === grupoActual);
             const misParticipantes = obtenerParticipantesGrupo(grupoActual);
             const fechaHoy = new Date().toISOString().split('T')[0];
+            const fechaFormateada = new Date().toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
 
             return `
                 <div class="container dashboard">
@@ -2028,10 +2159,11 @@
                             <strong>⚠️ IMPORTANTE:</strong> Selecciona el tipo de encuentro antes de pasar lista
                         </div>
                         
-                        <div class="form-group">
-                            <label>Fecha</label>
-                            <input type="date" id="fechaAsistencia" value="${fechaHoy}" style="padding: 0.875rem 1rem;">
+                        <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; text-align: center;">
+                            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 0.5rem;">📅 Fecha de hoy</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; text-transform: capitalize;">${fechaFormateada}</div>
                         </div>
+                        <input type="hidden" id="fechaAsistencia" value="${fechaHoy}">
                         
                         <div class="radio-group">
                             <div class="radio-option">
