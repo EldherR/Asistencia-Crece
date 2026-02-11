@@ -828,9 +828,20 @@
         </div>
     </div>
 
+    <!-- Modal Detalle de Asistencia -->
+    <div id="modalDetalleAsistencia" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 class="modal-title">👥 Detalle de Asistencia</h3>
+                <button class="modal-close" onclick="cerrarModal('modalDetalleAsistencia')">&times;</button>
+            </div>
+            <div id="detalleAsistenciaContent"></div>
+        </div>
+    </div>
+
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-     const firebaseConfig = {
+       const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -845,7 +856,6 @@
   appId: "1:598785147177:web:d9a0a18c3718511a07f738"
 
 };
-
 
         let db;
         let firebaseConfigured = false;
@@ -938,6 +948,13 @@
         }
 
         async function crearUsuario(nombre, usuario, password) {
+            // Verificar si el usuario ya existe
+            const usuarioExiste = usuarios.find(u => u.usuario === usuario);
+            if (usuarioExiste) {
+                mostrarAlerta('❌ El usuario ya existe', 'danger');
+                return;
+            }
+
             try {
                 const docRef = await db.collection('usuarios').add({
                     nombre: nombre,
@@ -954,6 +971,7 @@
                 });
                 
                 mostrarAlerta('✅ Usuario creado exitosamente', 'success');
+                document.getElementById('formCrearUsuario').reset();
                 cerrarModal('modalUsuario');
                 actualizarSelectUsuarios();
                 render();
@@ -1153,9 +1171,110 @@
                 usuarios.map(u => `<option value="${u.id}">${u.nombre} (${u.usuario})</option>`).join('');
         }
 
+        function verDetalleAsistencia(asistenciaId) {
+            const asistencia = asistencias.find(a => a.id === asistenciaId);
+            if (!asistencia) return;
+
+            const presentes = asistencia.participantes.filter(p => p.presente);
+            const ausentes = asistencia.participantes.filter(p => p.ausente);
+            const sinMarcar = asistencia.participantes.filter(p => !p.presente && !p.ausente);
+
+            let html = `
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: #E8F5E9; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: #2E7D32;">${presentes.length}</div>
+                            <div style="font-size: 0.85rem; color: #2E7D32;">Presentes</div>
+                        </div>
+                        <div style="background: #FFEBEE; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: #C62828;">${ausentes.length}</div>
+                            <div style="font-size: 0.85rem; color: #C62828;">Ausentes</div>
+                        </div>
+                        ${sinMarcar.length > 0 ? `
+                        <div style="background: #FFF3E0; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 2rem; font-weight: 700; color: #E65100;">${sinMarcar.length}</div>
+                            <div style="font-size: 0.85rem; color: #E65100;">Sin marcar</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div style="background: #F7F9FC; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <strong>Fecha:</strong> ${asistencia.fecha}<br>
+                        <strong>Asignatura:</strong> ${asistencia.asignatura}<br>
+                        <strong>Tipo:</strong> <span class="badge badge-${asistencia.tipoEncuentro}">${asistencia.tipoEncuentro}</span>
+                    </div>
+                </div>
+
+                ${presentes.length > 0 ? `
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="color: #2E7D32; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.5rem;">✓</span> Presentes (${presentes.length})
+                        </h4>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${presentes.map((p, index) => `
+                                <div style="background: #E8F5E9; padding: 0.75rem; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                    <span style="background: #2E7D32; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                        ${index + 1}
+                                    </span>
+                                    <div>
+                                        <div style="font-weight: 600; color: #1B5E20;">${p.nombre} ${p.apellido}</div>
+                                        <div style="font-size: 0.85rem; color: #2E7D32;">${p.centro}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${ausentes.length > 0 ? `
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="color: #C62828; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.5rem;">✗</span> Ausentes (${ausentes.length})
+                        </h4>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${ausentes.map((p, index) => `
+                                <div style="background: #FFEBEE; padding: 0.75rem; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                    <span style="background: #C62828; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                        ${index + 1}
+                                    </span>
+                                    <div>
+                                        <div style="font-weight: 600; color: #B71C1C;">${p.nombre} ${p.apellido}</div>
+                                        <div style="font-size: 0.85rem; color: #C62828;">${p.centro}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${sinMarcar.length > 0 ? `
+                    <div>
+                        <h4 style="color: #E65100; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.5rem;">○</span> Sin marcar (${sinMarcar.length})
+                        </h4>
+                        <div style="display: grid; gap: 0.5rem;">
+                            ${sinMarcar.map((p, index) => `
+                                <div style="background: #FFF3E0; padding: 0.75rem; border-radius: 8px; display: flex; align-items: center; gap: 0.75rem;">
+                                    <span style="background: #E65100; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">
+                                        ${index + 1}
+                                    </span>
+                                    <div>
+                                        <div style="font-weight: 600; color: #E65100;">${p.nombre} ${p.apellido}</div>
+                                        <div style="font-size: 0.85rem; color: #F57C00;">${p.centro}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+
+            document.getElementById('detalleAsistenciaContent').innerHTML = html;
+            abrirModal('modalDetalleAsistencia');
+        }
+
         function login(usuario, password) {
-            const user = usuarios.find(u => u.usuario === usuario && u.password === password);
-            
+            // Admin login
             if (usuario === 'admin' && password === 'E.r40%6205$C') {
                 currentUser = { tipo: 'admin', usuario: 'admin' };
                 currentScreen = 'dashboard';
@@ -1163,7 +1282,15 @@
                 return true;
             }
             
-            if (user && user.rol) {
+            // User login
+            const user = usuarios.find(u => u.usuario === usuario && u.password === password);
+            
+            if (user) {
+                if (!user.rol) {
+                    mostrarAlerta('Este usuario no tiene un rol asignado. Contacta al administrador.', 'warning');
+                    return false;
+                }
+                
                 currentUser = { tipo: user.rol, ...user };
                 currentScreen = 'dashboard';
                 render();
@@ -1303,14 +1430,20 @@
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-                    const participantesData = jsonData.map(row => ({
-                        nombre: row.Nombre || row.nombre || '',
-                        apellido: row.Apellido || row.apellido || '',
-                        centro: row['Centro educativo donde trabaja'] || row.centro || row.Centro || ''
-                    }));
+                    // Filtrar filas vacías o sin datos válidos
+                    const participantesData = jsonData
+                        .map(row => ({
+                            nombre: row.Nombre || row.nombre || '',
+                            apellido: row.Apellido || row.apellido || '',
+                            centro: row['Centro educativo donde trabaja'] || row.centro || row.Centro || ''
+                        }))
+                        .filter(p => {
+                            // Solo incluir si tiene al menos nombre y apellido
+                            return p.nombre.trim() !== '' && p.apellido.trim() !== '';
+                        });
 
                     if (participantesData.length === 0) {
-                        mostrarAlerta('El archivo Excel está vacío o no tiene el formato correcto', 'warning');
+                        mostrarAlerta('El archivo Excel está vacío o no tiene datos válidos', 'warning');
                         return;
                     }
 
@@ -1616,6 +1749,7 @@
                                                     <th>Tipo</th>
                                                     <th>Presentes</th>
                                                     <th>Ausentes</th>
+                                                    <th>Acciones</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1629,6 +1763,11 @@
                                                             <td><span class="badge badge-${a.tipoEncuentro}">${a.tipoEncuentro}</span></td>
                                                             <td class="text-success"><strong>${presentes}</strong></td>
                                                             <td class="text-danger"><strong>${ausentes}</strong></td>
+                                                            <td>
+                                                                <button class="btn btn-secondary btn-sm" onclick="verDetalleAsistencia('${a.id}')" style="padding: 0.25rem 0.75rem;">
+                                                                    👁️ Ver detalle
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     `;
                                                 }).join('')}
