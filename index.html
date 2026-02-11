@@ -870,7 +870,7 @@
 
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-          const firebaseConfig = {
+       const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -885,6 +885,7 @@
   appId: "1:598785147177:web:d9a0a18c3718511a07f738"
 
 };
+
 
         let db;
         let firebaseConfigured = false;
@@ -1390,10 +1391,13 @@
             if (!asistencia) return;
 
             const grupo = grupos.find(g => g.id === asistencia.grupoId);
+            const distrito = obtenerDistritoGrupo(asistencia.grupoId);
             
-            // Preparar datos para Excel
+            // Preparar datos para Excel con distrito y grupo
             const datos = asistencia.participantes.map((p, index) => ({
                 'No.': index + 1,
+                'Distrito': distrito,
+                'Grupo': grupo ? grupo.nombre : 'N/A',
                 'Nombre': p.nombre,
                 'Apellido': p.apellido,
                 'Centro Educativo': p.centro,
@@ -1406,6 +1410,8 @@
             // Ajustar ancho de columnas
             ws['!cols'] = [
                 { wch: 6 },  // No.
+                { wch: 10 }, // Distrito
+                { wch: 20 }, // Grupo
                 { wch: 20 }, // Nombre
                 { wch: 20 }, // Apellido
                 { wch: 40 }, // Centro
@@ -1419,7 +1425,7 @@
             // Agregar hoja de resumen
             const resumen = [
                 { 'Campo': 'Fecha', 'Valor': asistencia.fecha },
-                { 'Campo': 'Distrito', 'Valor': obtenerDistritoGrupo(asistencia.grupoId) },
+                { 'Campo': 'Distrito', 'Valor': distrito },
                 { 'Campo': 'Grupo', 'Valor': grupo ? grupo.nombre : 'N/A' },
                 { 'Campo': 'Asignatura', 'Valor': asistencia.asignatura },
                 { 'Campo': 'Docente', 'Valor': asistencia.nombreDocente || 'N/A' },
@@ -1436,7 +1442,7 @@
             XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
 
             // Descargar
-            const fileName = `Asistencia_${grupo ? grupo.nombre : 'Grupo'}_${asistencia.asignatura}_${asistencia.fecha}.xlsx`;
+            const fileName = `Asistencia_Distrito${distrito}_${grupo ? grupo.nombre : 'Grupo'}_${asistencia.asignatura}_${asistencia.fecha}.xlsx`;
             XLSX.writeFile(wb, fileName);
             
             mostrarAlerta('✅ Excel descargado exitosamente', 'success');
@@ -1454,9 +1460,12 @@
 
             asistenciasFecha.forEach(asistencia => {
                 const grupo = grupos.find(g => g.id === asistencia.grupoId);
+                const distrito = obtenerDistritoGrupo(asistencia.grupoId);
                 
                 const datos = asistencia.participantes.map((p, index) => ({
                     'No.': index + 1,
+                    'Distrito': distrito,
+                    'Grupo': grupo ? grupo.nombre : 'N/A',
                     'Nombre': p.nombre,
                     'Apellido': p.apellido,
                     'Centro Educativo': p.centro,
@@ -1465,10 +1474,10 @@
 
                 const ws = XLSX.utils.json_to_sheet(datos);
                 ws['!cols'] = [
-                    { wch: 6 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 12 }
+                    { wch: 6 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 40 }, { wch: 12 }
                 ];
 
-                const sheetName = `${grupo ? grupo.nombre : 'Grupo'} - ${asistencia.asignatura}`.substring(0, 31);
+                const sheetName = `${distrito}-${grupo ? grupo.nombre : 'Grupo'} - ${asistencia.asignatura}`.substring(0, 31);
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
             });
 
@@ -1494,7 +1503,7 @@
             ];
             XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
 
-            const fileName = `Asistencias_${fecha}.xlsx`;
+            const fileName = `Asistencias_Todas_${fecha}.xlsx`;
             XLSX.writeFile(wb, fileName);
             
             mostrarAlerta('✅ Excel descargado exitosamente', 'success');
@@ -1525,17 +1534,51 @@
         }
 
         async function actualizarCentroEducativo(participanteId, nuevoCentro) {
+            if (nuevoCentro.trim() === '') return;
+            
             try {
+                // Actualizar en participantes
                 await db.collection('participantes').doc(participanteId).update({
                     centro: nuevoCentro
                 });
                 
+                // Actualizar en estado local de participantes
                 const index = participantes.findIndex(p => p.id === participanteId);
                 if (index >= 0) {
                     participantes[index].centro = nuevoCentro;
                 }
                 
-                mostrarAlerta('✅ Centro educativo actualizado', 'success');
+                // Actualizar en TODAS las asistencias que contengan este participante
+                const asistenciasConParticipante = asistencias.filter(a => 
+                    a.participantes && a.participantes.some(p => p.id === participanteId)
+                );
+                
+                const batch = db.batch();
+                
+                for (const asistencia of asistenciasConParticipante) {
+                    const participantesActualizados = asistencia.participantes.map(p => {
+                        if (p.id === participanteId) {
+                            return { ...p, centro: nuevoCentro };
+                        }
+                        return p;
+                    });
+                    
+                    const docRef = db.collection('asistencias').doc(asistencia.id);
+                    batch.update(docRef, { participantes: participantesActualizados });
+                    
+                    // Actualizar en estado local
+                    const asistIndex = asistencias.findIndex(a => a.id === asistencia.id);
+                    if (asistIndex >= 0) {
+                        asistencias[asistIndex].participantes = participantesActualizados;
+                    }
+                }
+                
+                await batch.commit();
+                
+                mostrarAlerta('✅ Centro educativo actualizado en todos los registros', 'success');
+                
+                // Re-renderizar para reflejar cambios
+                render();
             } catch (error) {
                 console.error('Error:', error);
                 mostrarAlerta('Error al actualizar centro', 'danger');
