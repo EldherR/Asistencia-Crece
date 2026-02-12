@@ -42,6 +42,7 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             color: var(--dark);
             line-height: 1.6;
@@ -867,9 +868,20 @@
         </div>
     </div>
 
+    <!-- Modal Gestionar Asignaciones de Docente -->
+    <div id="modalAsignacionesDocente" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 class="modal-title">📚 Gestionar Asignaciones</h3>
+                <button class="modal-close" onclick="cerrarModal('modalAsignacionesDocente')">&times;</button>
+            </div>
+            <div id="contenidoAsignacionesDocente"></div>
+        </div>
+    </div>
+
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
-       const firebaseConfig = {
+         const firebaseConfig = {
 
   apiKey: "AIzaSyDve6JG6Yz5c3rVSzaXOPd6SLiXzOxKHEc",
 
@@ -1532,6 +1544,165 @@
             }
         }
 
+        function abrirGestionAsignaciones(usuarioId) {
+            const usuario = usuarios.find(u => u.id === usuarioId);
+            if (!usuario || usuario.rol !== 'docente') {
+                mostrarAlerta('Solo se pueden gestionar asignaciones de docentes', 'warning');
+                return;
+            }
+
+            const asignacionesActuales = usuario.asignaciones || [];
+            
+            let html = `
+                <div style="margin-bottom: 1rem;">
+                    <strong style="font-size: 1.1rem;">Docente:</strong> ${usuario.nombre}
+                </div>
+                
+                <div style="background: #F7F9FC; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--secondary);">Asignaciones Actuales (${asignacionesActuales.length})</h4>
+                    ${asignacionesActuales.length === 0 ? 
+                        '<p style="color: var(--gray);">No tiene asignaciones todavía</p>' :
+                        `
+                        <div style="display: grid; gap: 0.75rem;">
+                            ${asignacionesActuales.map((asig, index) => {
+                                const grupo = grupos.find(g => g.id === asig.grupoId);
+                                const distrito = grupo ? grupo.distrito : 'N/A';
+                                return `
+                                    <div style="background: white; padding: 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 2px solid #E8E8F0;">
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--secondary);">
+                                                ${grupo ? grupo.nombre : 'Grupo no encontrado'} - ${asig.asignatura}
+                                            </div>
+                                            <div style="font-size: 0.85rem; color: var(--gray);">Distrito ${distrito}</div>
+                                        </div>
+                                        <button class="btn btn-danger btn-sm" onclick="eliminarAsignacion('${usuarioId}', ${index})" style="padding: 0.5rem 1rem;">
+                                            ✕ Quitar
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        `
+                    }
+                </div>
+                
+                <div style="background: #E8F5E9; padding: 1.5rem; border-radius: 12px;">
+                    <h4 style="margin-bottom: 1rem; color: var(--success);">➕ Agregar Nueva Asignación</h4>
+                    <form id="formAgregarAsignacion">
+                        <div class="form-group">
+                            <label>Distrito</label>
+                            <select id="nuevoDistrito" required onchange="actualizarGruposNuevaAsignacion()">
+                                <option value="">Selecciona un distrito</option>
+                                ${distritos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Grupo</label>
+                            <select id="nuevoGrupo" required>
+                                <option value="">Primero selecciona un distrito</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Asignatura</label>
+                            <select id="nuevaAsignatura" required>
+                                <option value="">Selecciona una asignatura</option>
+                                ${asignaturas.map(a => `<option value="${a}">${a}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success" style="width: 100%;">
+                            ➕ Agregar Asignación
+                        </button>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('contenidoAsignacionesDocente').innerHTML = html;
+            abrirModal('modalAsignacionesDocente');
+
+            // Attach form handler
+            document.getElementById('formAgregarAsignacion').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const grupoId = document.getElementById('nuevoGrupo').value;
+                const asignatura = document.getElementById('nuevaAsignatura').value;
+                agregarAsignacion(usuarioId, grupoId, asignatura);
+            });
+        }
+
+        function actualizarGruposNuevaAsignacion() {
+            const distrito = document.getElementById('nuevoDistrito').value;
+            const grupoSelect = document.getElementById('nuevoGrupo');
+            const gruposDistrito = grupos.filter(g => g.distrito === distrito);
+
+            if (gruposDistrito.length === 0) {
+                grupoSelect.innerHTML = '<option value="">No hay grupos en este distrito</option>';
+            } else {
+                grupoSelect.innerHTML = '<option value="">Selecciona un grupo</option>' +
+                    gruposDistrito.map(g => `<option value="${g.id}">${g.nombre}</option>`).join('');
+            }
+        }
+
+        async function agregarAsignacion(usuarioId, grupoId, asignatura) {
+            try {
+                const usuario = usuarios.find(u => u.id === usuarioId);
+                if (!usuario) return;
+
+                const asignacionesActuales = usuario.asignaciones || [];
+                
+                // Verificar si ya existe esta asignación
+                const yaExiste = asignacionesActuales.some(a => 
+                    a.grupoId === grupoId && a.asignatura === asignatura
+                );
+
+                if (yaExiste) {
+                    mostrarAlerta('⚠️ Esta asignación ya existe', 'warning');
+                    return;
+                }
+
+                const nuevasAsignaciones = [...asignacionesActuales, { grupoId, asignatura }];
+
+                await db.collection('usuarios').doc(usuarioId).update({
+                    asignaciones: nuevasAsignaciones
+                });
+
+                const index = usuarios.findIndex(u => u.id === usuarioId);
+                if (index >= 0) {
+                    usuarios[index].asignaciones = nuevasAsignaciones;
+                }
+
+                mostrarAlerta('✅ Asignación agregada exitosamente', 'success');
+                abrirGestionAsignaciones(usuarioId); // Recargar modal
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al agregar asignación', 'danger');
+            }
+        }
+
+        async function eliminarAsignacion(usuarioId, index) {
+            if (!confirm('¿Estás seguro de eliminar esta asignación?')) return;
+
+            try {
+                const usuario = usuarios.find(u => u.id === usuarioId);
+                if (!usuario) return;
+
+                const nuevasAsignaciones = usuario.asignaciones.filter((_, i) => i !== index);
+
+                await db.collection('usuarios').doc(usuarioId).update({
+                    asignaciones: nuevasAsignaciones
+                });
+
+                const usuarioIndex = usuarios.findIndex(u => u.id === usuarioId);
+                if (usuarioIndex >= 0) {
+                    usuarios[usuarioIndex].asignaciones = nuevasAsignaciones;
+                }
+
+                mostrarAlerta('✅ Asignación eliminada correctamente', 'success');
+                abrirGestionAsignaciones(usuarioId); // Recargar modal
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al eliminar asignación', 'danger');
+            }
+        }
+
         async function actualizarCentroEducativo(participanteId, nuevoCentro) {
             if (nuevoCentro.trim() === '') return;
             
@@ -1867,6 +2038,9 @@
                             <button class="tab ${currentTab === 'usuarios' ? 'active' : ''}" onclick="cambiarTab('usuarios')">
                                 👥 Usuarios
                             </button>
+                            <button class="tab ${currentTab === 'docentes' ? 'active' : ''}" onclick="cambiarTab('docentes')">
+                                👨‍🏫 Gestión Docentes
+                            </button>
                             <button class="tab ${currentTab === 'asistencias' ? 'active' : ''}" onclick="cambiarTab('asistencias')">
                                 📈 Asistencias
                             </button>
@@ -1888,6 +2062,7 @@
                 case 'grupos': return renderGruposTab();
                 case 'excel': return renderExcelTab();
                 case 'usuarios': return renderUsuariosTab();
+                case 'docentes': return renderDocentesTab();
                 case 'asistencias': return renderAsistenciasAdminTab();
                 case 'configuracion': return renderConfiguracionTab();
                 default: return '';
@@ -2045,6 +2220,91 @@
                             </tbody>
                         </table>
                     </div>
+                    `
+                }
+            `;
+        }
+
+        function renderDocentesTab() {
+            const docentes = usuarios.filter(u => u.rol === 'docente');
+
+            return `
+                <div class="card-header">
+                    <h3 class="card-title">Gestión de Docentes y Asignaciones</h3>
+                </div>
+                
+                ${docentes.length === 0 ? 
+                    '<div class="alert alert-info">No hay docentes registrados todavía.</div>' :
+                    `
+                    <div class="alert alert-info" style="margin-bottom: 2rem;">
+                        Total de docentes: <strong>${docentes.length}</strong>
+                    </div>
+                    
+                    ${docentes.map(docente => {
+                        const asignaciones = docente.asignaciones || [];
+                        const asignacionesPorDistrito = {};
+                        
+                        asignaciones.forEach(asig => {
+                            const grupo = grupos.find(g => g.id === asig.grupoId);
+                            const distrito = grupo ? grupo.distrito : 'N/A';
+                            
+                            if (!asignacionesPorDistrito[distrito]) {
+                                asignacionesPorDistrito[distrito] = [];
+                            }
+                            
+                            asignacionesPorDistrito[distrito].push({
+                                grupo: grupo ? grupo.nombre : 'N/A',
+                                grupoId: asig.grupoId,
+                                asignatura: asig.asignatura
+                            });
+                        });
+
+                        return `
+                            <div style="background: white; border: 2px solid #E8E8F0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                                    <div>
+                                        <h4 style="color: var(--secondary); font-size: 1.25rem; margin-bottom: 0.25rem;">
+                                            👨‍🏫 ${docente.nombre}
+                                        </h4>
+                                        <p style="color: var(--gray); font-size: 0.9rem;">Usuario: ${docente.usuario}</p>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm" onclick="abrirGestionAsignaciones('${docente.id}')" style="padding: 0.75rem 1.5rem;">
+                                        ✏️ Gestionar Asignaciones
+                                    </button>
+                                </div>
+
+                                ${asignaciones.length === 0 ? 
+                                    '<div class="alert alert-warning">No tiene asignaciones todavía</div>' :
+                                    `
+                                    <div style="background: #F7F9FC; padding: 1rem; border-radius: 8px;">
+                                        <strong style="color: var(--secondary); margin-bottom: 0.75rem; display: block;">
+                                            Asignaciones (${asignaciones.length})
+                                        </strong>
+                                        
+                                        ${Object.keys(asignacionesPorDistrito).sort().map(distrito => `
+                                            <div style="margin-bottom: 1rem;">
+                                                <div style="font-weight: 600; color: var(--gray); font-size: 0.85rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                    📍 Distrito ${distrito}
+                                                </div>
+                                                <div style="display: grid; gap: 0.5rem;">
+                                                    ${asignacionesPorDistrito[distrito].map(asig => `
+                                                        <div style="background: white; padding: 0.75rem 1rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+                                                            <div>
+                                                                <span style="font-weight: 600; color: var(--dark);">${asig.grupo}</span>
+                                                                <span style="color: var(--gray); margin: 0 0.5rem;">•</span>
+                                                                <span style="color: var(--primary); font-weight: 500;">${asig.asignatura}</span>
+                                                            </div>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    `
+                                }
+                            </div>
+                        `;
+                    }).join('')}
                     `
                 }
             `;
