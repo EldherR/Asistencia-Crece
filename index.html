@@ -875,6 +875,39 @@
         </div>
     </div>
 
+    <!-- Modal Agregar Participante -->
+    <div id="modalAgregarParticipante" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">➕ Agregar Participante</h3>
+                <button class="modal-close" onclick="cerrarModal('modalAgregarParticipante')">&times;</button>
+            </div>
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                <strong>ℹ️</strong> Este participante quedará registrado permanentemente en la lista del grupo y aparecerá en todos los futuros pases de lista.
+            </div>
+            <div class="form-group">
+                <label>Nombre *</label>
+                <input type="text" id="nuevoNombre" placeholder="Nombre del participante" required>
+            </div>
+            <div class="form-group">
+                <label>Apellido *</label>
+                <input type="text" id="nuevoApellido" placeholder="Apellido del participante" required>
+            </div>
+            <div class="form-group">
+                <label>Centro Educativo</label>
+                <input type="text" id="nuevoCentro" placeholder="Centro educativo donde trabaja">
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" class="btn btn-success" style="flex: 1;" onclick="agregarNuevoParticipante()">
+                    ✅ Agregar a la Lista
+                </button>
+                <button type="button" class="btn btn-danger" style="flex: 1;" onclick="cerrarModal('modalAgregarParticipante')">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ==================== CONFIGURACIÓN FIREBASE ====================
          const firebaseConfig = {
@@ -927,7 +960,8 @@
         let tipoEncuentro = 'presencial';
         let contadorAsignaciones = 0;
         let configuracion = {
-            permitirEditarCentros: false
+            permitirEditarCentros: false,
+            permitirAgregarParticipantes: false
         };
 
         // ==================== FUNCIONES DE BASE DE DATOS ====================
@@ -1521,7 +1555,8 @@
                 const nuevoEstado = !configuracion.permitirEditarCentros;
                 
                 await db.collection('configuracion').doc('general').set({
-                    permitirEditarCentros: nuevoEstado
+                    permitirEditarCentros: nuevoEstado,
+                    permitirAgregarParticipantes: configuracion.permitirAgregarParticipantes
                 });
                 
                 configuracion.permitirEditarCentros = nuevoEstado;
@@ -1537,6 +1572,72 @@
             } catch (error) {
                 console.error('Error:', error);
                 mostrarAlerta('Error al cambiar configuración', 'danger');
+            }
+        }
+
+        async function toggleAgregarParticipantes() {
+            try {
+                const nuevoEstado = !configuracion.permitirAgregarParticipantes;
+                
+                await db.collection('configuracion').doc('general').set({
+                    permitirEditarCentros: configuracion.permitirEditarCentros,
+                    permitirAgregarParticipantes: nuevoEstado
+                });
+                
+                configuracion.permitirAgregarParticipantes = nuevoEstado;
+                
+                mostrarAlerta(
+                    nuevoEstado ? 
+                    '✅ Agregar participantes HABILITADO para docentes' : 
+                    '⛔ Agregar participantes DESHABILITADO', 
+                    nuevoEstado ? 'success' : 'warning'
+                );
+                
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al cambiar configuración', 'danger');
+            }
+        }
+
+        async function agregarNuevoParticipante() {
+            const nombre = document.getElementById('nuevoNombre').value.trim();
+            const apellido = document.getElementById('nuevoApellido').value.trim();
+            const centro = document.getElementById('nuevoCentro').value.trim();
+
+            if (!nombre || !apellido) {
+                mostrarAlerta('⚠️ Nombre y apellido son obligatorios', 'warning');
+                return;
+            }
+
+            const grupo = grupos.find(g => g.id === grupoActual);
+            if (!grupo) return;
+
+            try {
+                const nuevoParticipante = {
+                    nombre: nombre,
+                    apellido: apellido,
+                    centro: centro,
+                    distrito: grupo.distrito,
+                    grupoId: grupoActual,
+                    fechaCarga: new Date().toISOString(),
+                    agregadoPorDocente: true,
+                    nombreDocente: currentUser.nombre || ''
+                };
+
+                const docRef = await db.collection('participantes').add(nuevoParticipante);
+                participantes.push({ id: docRef.id, ...nuevoParticipante });
+
+                cerrarModal('modalAgregarParticipante');
+                document.getElementById('nuevoNombre').value = '';
+                document.getElementById('nuevoApellido').value = '';
+                document.getElementById('nuevoCentro').value = '';
+
+                mostrarAlerta(`✅ ${nombre} ${apellido} agregado a la lista`, 'success');
+                render();
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarAlerta('Error al agregar participante', 'danger');
             }
         }
 
@@ -2338,6 +2439,35 @@
                             <strong>⚠️ Importante:</strong> Los cambios afectan a todos los docentes inmediatamente.
                         </div>
                     </div>
+
+                    <div style="background: #F7F9FC; padding: 2rem; border-radius: 12px; border-left: 4px solid var(--secondary); margin-top: 1.5rem;">
+                        <h4 style="color: var(--secondary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                            ➕ Agregar Participantes por Docentes
+                        </h4>
+                        
+                        <p style="color: var(--gray); margin-bottom: 1.5rem; line-height: 1.6;">
+                            Permite a los docentes agregar nuevos participantes directamente desde el pase de lista. El participante se agrega permanentemente a la lista del grupo.
+                        </p>
+                        
+                        <div style="display: flex; align-items: center; gap: 1rem; background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            <div style="flex: 1;">
+                                <strong style="color: var(--dark);">Estado actual:</strong>
+                                <span style="display: block; margin-top: 0.25rem; color: ${configuracion.permitirAgregarParticipantes ? 'var(--success)' : 'var(--danger)'}; font-weight: 600;">
+                                    ${configuracion.permitirAgregarParticipantes ? '✅ HABILITADO' : '⛔ DESHABILITADO'}
+                                </span>
+                            </div>
+                            <button 
+                                class="btn ${configuracion.permitirAgregarParticipantes ? 'btn-danger' : 'btn-success'}" 
+                                onclick="toggleAgregarParticipantes()"
+                                style="white-space: nowrap;">
+                                ${configuracion.permitirAgregarParticipantes ? '⛔ Deshabilitar' : '✅ Habilitar'}
+                            </button>
+                        </div>
+                        
+                        <div style="background: #E3F2FD; padding: 1rem; border-radius: 8px; font-size: 0.9rem; color: #0D47A1;">
+                            <strong>ℹ️ Nota:</strong> El nuevo participante queda registrado en la base de datos con el grupo correspondiente y es visible en futuros pases de lista.
+                        </div>
+                    </div>
                 </div>
             `;
         }
@@ -2564,6 +2694,18 @@
                         ${configuracion.permitirEditarCentros ? `
                             <div class="alert alert-info">
                                 <strong>✏️ Edición habilitada:</strong> Puedes editar el centro educativo de cada participante
+                            </div>
+                        ` : ''}
+
+                        ${configuracion.permitirAgregarParticipantes ? `
+                            <div style="background: #E8F5E9; border: 2px solid var(--success); padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="color: #1B5E20;">➕ Agregar participante habilitado</strong>
+                                    <p style="color: #2E7D32; font-size: 0.875rem; margin-top: 0.25rem; margin-bottom: 0;">Puedes agregar una nueva persona a esta lista</p>
+                                </div>
+                                <button class="btn btn-success btn-sm" onclick="abrirModal('modalAgregarParticipante')" style="white-space: nowrap;">
+                                    ➕ Agregar Persona
+                                </button>
                             </div>
                         ` : ''}
                         
