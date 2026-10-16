@@ -1550,6 +1550,82 @@
             mostrarAlerta('✅ Excel descargado exitosamente', 'success');
         }
 
+        // Descarga todas las asistencias históricas en un único archivo Excel.
+        // Incluye una hoja detallada por participante y otra hoja con el resumen por asistencia.
+        function descargarTodasLasAsistencias() {
+            if (!Array.isArray(asistencias) || asistencias.length === 0) {
+                mostrarAlerta('No hay asistencias registradas para descargar.', 'warning');
+                return;
+            }
+
+            if (typeof XLSX === 'undefined') {
+                mostrarAlerta('No se pudo cargar la librería de Excel. Recarga la página e inténtalo de nuevo.', 'danger');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const filasDetalle = [];
+            const filasResumen = [];
+
+            asistencias
+                .slice()
+                .sort((a, b) => String(a.fecha || '').localeCompare(String(b.fecha || '')))
+                .forEach(asistencia => {
+                    const grupo = grupos.find(g => g.id === asistencia.grupoId);
+                    const distrito = obtenerDistritoGrupo(asistencia.grupoId);
+                    const lista = Array.isArray(asistencia.participantes) ? asistencia.participantes : [];
+
+                    filasResumen.push({
+                        'Fecha': asistencia.fecha || '',
+                        'Distrito': distrito || 'N/A',
+                        'Grupo': grupo ? grupo.nombre : 'N/A',
+                        'Asignatura': asistencia.asignatura || '',
+                        'Docente': asistencia.nombreDocente || 'N/A',
+                        'Tipo de encuentro': asistencia.tipoEncuentro || '',
+                        'Total participantes': lista.length,
+                        'Presentes': lista.filter(p => p.presente).length,
+                        'Ausentes': lista.filter(p => p.ausente).length,
+                        'Sin marcar': lista.filter(p => !p.presente && !p.ausente).length
+                    });
+
+                    lista.forEach((p, index) => {
+                        filasDetalle.push({
+                            'Fecha': asistencia.fecha || '',
+                            'Distrito': distrito || 'N/A',
+                            'Grupo': grupo ? grupo.nombre : 'N/A',
+                            'Asignatura': asistencia.asignatura || '',
+                            'Docente': asistencia.nombreDocente || 'N/A',
+                            'Tipo de encuentro': asistencia.tipoEncuentro || '',
+                            'No.': index + 1,
+                            'Nombre': p.nombre || '',
+                            'Apellido': p.apellido || '',
+                            'Centro educativo': p.centro || '',
+                            'Asistencia': p.presente ? 'Presente' : (p.ausente ? 'Ausente' : 'Sin marcar')
+                        });
+                    });
+                });
+
+            const wsDetalle = XLSX.utils.json_to_sheet(filasDetalle);
+            wsDetalle['!cols'] = [
+                { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 24 },
+                { wch: 25 }, { wch: 18 }, { wch: 8 }, { wch: 22 },
+                { wch: 22 }, { wch: 35 }, { wch: 14 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsDetalle, 'Todas las asistencias');
+
+            const wsResumen = XLSX.utils.json_to_sheet(filasResumen);
+            wsResumen['!cols'] = [
+                { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 24 },
+                { wch: 25 }, { wch: 18 }, { wch: 18 }, { wch: 12 },
+                { wch: 12 }, { wch: 12 }
+            ];
+            XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen general');
+
+            const fechaHoy = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `CRECE_Todas_las_Asistencias_${fechaHoy}.xlsx`);
+            mostrarAlerta(`Excel generado con ${asistencias.length} registros de asistencia.`, 'success');
+        }
+
         async function toggleEditarCentros() {
             try {
                 const nuevoEstado = !configuracion.permitirEditarCentros;
@@ -2485,9 +2561,12 @@
                         <label>🔍 Filtrar por Fecha</label>
                         <input type="date" id="filtroFechaAsistencia" value="${fechaFiltro}" onchange="render()" style="padding: 0.875rem 1rem;">
                     </div>
+                    <button class="btn btn-success btn-sm" onclick="descargarTodasLasAsistencias()" style="padding: 0.875rem 1.5rem;">
+                        📥 Descargar todas las asistencias (Excel)
+                    </button>
                     ${fechaFiltro ? `
-                        <button class="btn btn-success btn-sm" onclick="descargarTodasAsistenciasFecha('${fechaFiltro}')" style="padding: 0.875rem 1.5rem;">
-                            📥 Descargar Todo (${fechaFiltro})
+                        <button class="btn btn-secondary btn-sm" onclick="descargarTodasAsistenciasFecha('${fechaFiltro}')" style="padding: 0.875rem 1.5rem;">
+                            📅 Descargar fecha (${fechaFiltro})
                         </button>
                     ` : ''}
                 </div>
